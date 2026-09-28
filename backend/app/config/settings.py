@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     LOG_LEVEL: str = "INFO"
+    MAX_INGESTION_FILE_SIZE_BYTES: int = 52_428_800  # Default 50MB
 
     # CORS Configuration
     BACKEND_CORS_ORIGINS: List[str] = [

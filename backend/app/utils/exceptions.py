@@ -31,3 +31,22 @@ class ValidationException(SATSAException):
             status_code=422,
             details=details
         )
+
+class IngestionException(SATSAException):
+    def __init__(self, message: str, code: str = "INGESTION_ERROR", status_code: int = 400, details: any = None):
+        super().__init__(
+            message=message,
+            code=code,
+            status_code=status_code,
+            details=details
+        )
+
+class FileTooLargeException(SATSAException):
+    def __init__(self, size_bytes: int, max_bytes: int):
+        super().__init__(
+            message=f"Uploaded file size ({size_bytes} bytes) exceeds maximum limit of {max_bytes} bytes.",
+            code="FILE_TOO_LARGE",
+            status_code=413,
+            details={"size_bytes": size_bytes, "max_bytes": max_bytes}
+        )
+
