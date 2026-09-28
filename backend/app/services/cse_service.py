@@ -30,7 +30,41 @@ class CSEService(BaseService[CSE]):
             raise EntityNotFoundException("CSE", cse_id)
         return cse
 
-    def list_cses(self, db: Session, skip: int = 0, limit: int = 100) -> List[CSE]:
-        return self.get_multi(db, skip=skip, limit=limit)
+    def list_cses(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        sector: Optional[str] = None,
+        is_active: Optional[bool] = None
+    ) -> List[CSE]:
+        query = db.query(CSE)
+        if search:
+            pattern = f"%{search}%"
+            query = query.filter((CSE.name.ilike(pattern)) | (CSE.cse_code.ilike(pattern)))
+        if sector:
+            query = query.filter(CSE.sector == sector.upper())
+        if is_active is not None:
+            query = query.filter(CSE.is_active == is_active)
+        return query.order_by(CSE.name).offset(skip).limit(limit).all()
+
+    def count_cses(
+        self,
+        db: Session,
+        search: Optional[str] = None,
+        sector: Optional[str] = None,
+        is_active: Optional[bool] = None
+    ) -> int:
+        query = db.query(CSE)
+        if search:
+            pattern = f"%{search}%"
+            query = query.filter((CSE.name.ilike(pattern)) | (CSE.cse_code.ilike(pattern)))
+        if sector:
+            query = query.filter(CSE.sector == sector.upper())
+        if is_active is not None:
+            query = query.filter(CSE.is_active == is_active)
+        return query.count()
 
 cse_service = CSEService()
+
