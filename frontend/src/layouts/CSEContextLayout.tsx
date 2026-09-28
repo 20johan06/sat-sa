@@ -7,14 +7,18 @@ import {
   BarChart3,
   FileText,
   UploadCloud,
-  Building2
+  Building2,
 } from 'lucide-react';
 import PageContainer from '../components/layout/PageContainer';
 import Badge from '../components/ui/Badge';
+import StatusBadge from '../components/ui/StatusBadge';
+import { useCseQuery } from '../hooks/api/useCses';
 
 export const CSEContextLayout: React.FC = () => {
   const { cse_id } = useParams<{ cse_id: string }>();
   const activeCseId = cse_id || '';
+
+  const { data: cse } = useCseQuery(activeCseId);
 
   const secondaryNavTabs = [
     { label: 'Overview', path: `/cses/${activeCseId}`, end: true, icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -36,20 +40,29 @@ export const CSEContextLayout: React.FC = () => {
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 mb-0.5">
                   <span className="text-xs text-slate-500 font-mono">Entity Supervision Context</span>
-                  <Badge variant="outline" size="sm">
-                    ID: {activeCseId}
-                  </Badge>
+                  {cse && (
+                    <>
+                      <Badge variant="outline" size="sm">
+                        {cse.sector}
+                      </Badge>
+                      <Badge variant={cse.criticality_tier === 'TIER_1' ? 'warning' : 'info'} size="sm">
+                        {cse.criticality_tier}
+                      </Badge>
+                      <StatusBadge status={cse.is_active ? 'ACTIVE' : 'INACTIVE'} />
+                    </>
+                  )}
                 </div>
                 <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-                  Critical Sector Entity Supervision
+                  {cse ? `${cse.name} (${cse.cse_code})` : 'Critical Sector Entity Supervision'}
                 </h2>
               </div>
             </div>
 
-            <div className="text-xs text-slate-600 font-mono bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200 self-start md:self-auto">
-              <span>Observation Period: Bounded via API</span>
+            <div className="text-xs text-slate-600 font-mono bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200 self-start md:self-auto flex items-center gap-2">
+              <span>CSE ID:</span>
+              <span className="font-semibold text-slate-800 select-all">{activeCseId}</span>
             </div>
           </div>
 
