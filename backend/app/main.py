@@ -4,7 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.config.settings import settings
 from app.utils.logger import logger
+from app.utils.exceptions import SATSAException
 from app.api.health import router as health_router
+from app.api.v1.api import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,29 +22,49 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Middleware Configuration - Explicit Local Development Origins
+# CORS Middleware Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Global Exception Handler
+# Custom SAT-SA Application Exception Handler
+@app.exception_handler(SATSAException)
+async def satsa_exception_handler(request: Request, exc: SATSAException):
+    logger.warning(f"Domain exception on path {request.url.path} [{exc.code}]: {exc.message}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": exc.code,
+                "message": exc.message,
+                "details": exc.details
+            }
+        }
+    )
+
+# Global Unhandled Exception Handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception on path {request.url.path}: {exc}", exc_info=True)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "An internal server error occurred."}
+        content={
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An internal server error occurred."
+            }
+        }
     )
 
-# Include API routes
+# Mount Health Endpoint at root /health for backward compatibility
 app.include_router(health_router)
+
+# Mount API v1 Router under /api/v1
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():
@@ -50,5 +72,6 @@ def root():
         "project": settings.PROJECT_NAME,
         "subtitle": "Supervisory Analytics Tool for SOC Assessment",
         "version": "0.1.0",
-        "docs": "/docs"
+        "docs": "/docs",
+        "api_v1": settings.API_V1_STR
     }

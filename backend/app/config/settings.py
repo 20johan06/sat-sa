@@ -1,3 +1,4 @@
+from typing import List
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -8,6 +9,13 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     LOG_LEVEL: str = "INFO"
 
+    # CORS Configuration
+    BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+
+    # Database Configuration
     POSTGRES_USER: str = "satsa_user"
     POSTGRES_PASSWORD: str = "satsa_password"
     POSTGRES_DB: str = "satsa_db"
