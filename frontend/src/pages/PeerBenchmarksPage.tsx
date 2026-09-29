@@ -121,6 +121,7 @@ export const PeerBenchmarksPage: React.FC = () => {
                 <Input
                   type="datetime-local"
                   value={obsStart}
+                  aria-label="Observation Start Date"
                   onChange={(e) => {
                     setObsStart(e.target.value);
                     setDateError(null);
@@ -136,6 +137,7 @@ export const PeerBenchmarksPage: React.FC = () => {
                 <Input
                   type="datetime-local"
                   value={obsEnd}
+                  aria-label="Observation End Date"
                   onChange={(e) => {
                     setObsEnd(e.target.value);
                     setDateError(null);

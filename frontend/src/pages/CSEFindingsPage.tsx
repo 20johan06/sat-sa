@@ -154,6 +154,7 @@ export const CSEFindingsPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <Select
                 label="Category"
+                aria-label="Filter by category"
                 value={selectedCategory}
                 onChange={(e) => {
                   setSelectedCategory(e.target.value);
@@ -163,6 +164,7 @@ export const CSEFindingsPage: React.FC = () => {
               />
               <Select
                 label="Severity"
+                aria-label="Filter by severity"
                 value={selectedSeverity}
                 onChange={(e) => {
                   setSelectedSeverity(e.target.value);
@@ -172,6 +174,7 @@ export const CSEFindingsPage: React.FC = () => {
               />
               <Select
                 label="Status"
+                aria-label="Filter by status"
                 value={selectedStatus}
                 onChange={(e) => {
                   setSelectedStatus(e.target.value);
@@ -185,6 +188,7 @@ export const CSEFindingsPage: React.FC = () => {
                   value={ruleCodeInput}
                   onChange={(e) => setRuleCodeInput(e.target.value)}
                   placeholder="e.g. EG-01, NS-02"
+                  aria-label="Filter by rule code"
                 />
               </div>
             </div>
@@ -198,6 +202,7 @@ export const CSEFindingsPage: React.FC = () => {
                   type="datetime-local"
                   value={obsStart}
                   onChange={(e) => setObsStart(e.target.value)}
+                  aria-label="Filter by observation start date"
                   startIcon={<Calendar className="w-4 h-4 text-slate-400" />}
                 />
               </div>
@@ -209,6 +214,7 @@ export const CSEFindingsPage: React.FC = () => {
                   type="datetime-local"
                   value={obsEnd}
                   onChange={(e) => setObsEnd(e.target.value)}
+                  aria-label="Filter by observation end date"
                   startIcon={<Calendar className="w-4 h-4 text-slate-400" />}
                 />
               </div>
@@ -301,8 +307,17 @@ export const CSEFindingsPage: React.FC = () => {
                   {findingsList.map((finding) => (
                     <TableRow
                       key={finding.id}
-                      className="cursor-pointer hover:bg-slate-50/90 transition-colors"
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`View finding ${finding.finding_code}`}
+                      className="cursor-pointer hover:bg-slate-50/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                       onClick={() => navigate(`/findings/${finding.id}`)}
+                      onKeyDown={(e) => {
+                        if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
+                          e.preventDefault();
+                          navigate(`/findings/${finding.id}`);
+                        }
+                      }}
                     >
                       <TableCell className="font-mono text-xs font-bold text-blue-700">
                         {finding.finding_code}

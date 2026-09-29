@@ -60,21 +60,21 @@ export const CSEContextLayout: React.FC = () => {
               </div>
             </div>
 
-            <div className="text-xs text-slate-600 font-mono bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200 self-start md:self-auto flex items-center gap-2">
+            <div className="text-xs text-slate-600 font-mono bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200 self-start md:self-auto flex flex-wrap items-center gap-2 max-w-full">
               <span>CSE ID:</span>
-              <span className="font-semibold text-slate-800 select-all">{activeCseId}</span>
+              <span className="font-semibold text-slate-800 select-all break-all sm:break-normal">{activeCseId}</span>
             </div>
           </div>
 
           {/* Secondary Tabs Navigation */}
-          <nav aria-label="Entity Context Navigation" className="flex space-x-1 mt-5 border-b border-slate-200 overflow-x-auto">
+          <nav aria-label="Entity Context Navigation" className="flex space-x-1 mt-5 border-b border-slate-200 overflow-x-auto pb-0.5">
             {secondaryNavTabs.map((tab) => (
               <NavLink
                 key={tab.path}
                 to={tab.path}
                 end={tab.end}
                 className={({ isActive }) => `
-                  flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap
+                  flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-t-md
                   ${isActive
                     ? 'border-blue-600 text-blue-600 bg-blue-50/50'
                     : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'

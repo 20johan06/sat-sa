@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
 import IconButton from './IconButton';
 
@@ -21,6 +21,9 @@ export const Modal: React.FC<ModalProps> = ({
   maxWidth = 'md',
   footer,
 }) => {
+  const generatedId = useId();
+  const titleId = `modal-title-${generatedId}`;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -48,26 +51,31 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" role="dialog" aria-modal="true">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={title ? titleId : undefined}
+    >
+      <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
       <div
-        className="fixed inset-0"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div className={`relative w-full ${maxWidthStyles[maxWidth]} bg-white border border-slate-200 rounded-lg shadow-xl flex flex-col z-10 overflow-hidden`}>
+        className={`relative w-full ${maxWidthStyles[maxWidth]} bg-white border border-slate-200 rounded-lg shadow-xl flex flex-col z-10 overflow-hidden max-h-[90vh]`}
+      >
         {/* Header */}
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <div>
-            {title && <h3 className="text-base font-semibold text-slate-900 tracking-tight">{title}</h3>}
+            {title && (
+              <h3 id={titleId} className="text-base font-semibold text-slate-900 tracking-tight">
+                {title}
+              </h3>
+            )}
             {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
           </div>
           <IconButton aria-label="Close modal" icon={<X className="w-4 h-4" />} onClick={onClose} size="sm" />
         </div>
 
         {/* Content */}
-        <div className="p-5 max-h-[75vh] overflow-y-auto text-slate-800">
-          {children}
-        </div>
+        <div className="p-5 max-h-[75vh] overflow-y-auto text-slate-800 break-words">{children}</div>
 
         {/* Footer */}
         {footer && (

@@ -156,7 +156,7 @@ export const FindingDetailPage: React.FC = () => {
 
               <div>
                 <span className="text-slate-400 block font-mono">FINDING UUID</span>
-                <span className="font-mono text-slate-700 select-all truncate mt-0.5 block">
+                <span className="font-mono text-slate-700 select-all break-all sm:break-normal mt-0.5 block" title={finding.id}>
                   {finding.id}
                 </span>
               </div>
@@ -183,7 +183,7 @@ export const FindingDetailPage: React.FC = () => {
                     <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
                       Finding Description
                     </h4>
-                    <div className="p-3.5 rounded-md bg-slate-50 border border-slate-200 text-xs text-slate-800 leading-relaxed font-sans">
+                    <div className="p-3.5 rounded-md bg-slate-50 border border-slate-200 text-xs text-slate-800 leading-relaxed font-sans break-words">
                       {finding.description}
                     </div>
                   </div>
@@ -192,7 +192,7 @@ export const FindingDetailPage: React.FC = () => {
                     <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
                       Supervisory Rationale & Justification
                     </h4>
-                    <div className="p-3.5 rounded-md bg-blue-50/40 border border-blue-200 text-xs text-slate-900 leading-relaxed font-sans">
+                    <div className="p-3.5 rounded-md bg-blue-50/40 border border-blue-200 text-xs text-slate-900 leading-relaxed font-sans break-words">
                       {finding.rationale}
                     </div>
                   </div>
@@ -214,9 +214,9 @@ export const FindingDetailPage: React.FC = () => {
                   <CardContent className="p-5">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
                       {Object.entries(finding.metrics_json).map(([key, val]) => (
-                        <div key={key} className="p-2.5 rounded bg-slate-50 border border-slate-200 flex items-center justify-between">
-                          <span className="font-semibold text-slate-700">{key}:</span>
-                          <span className="text-blue-800 font-bold">
+                        <div key={key} className="p-2.5 rounded bg-slate-50 border border-slate-200 flex items-center justify-between gap-2 overflow-hidden">
+                          <span className="font-semibold text-slate-700 shrink-0">{key}:</span>
+                          <span className="text-blue-800 font-bold truncate">
                             {typeof val === 'object' ? JSON.stringify(val) : String(val)}
                           </span>
                         </div>
@@ -264,33 +264,33 @@ export const FindingDetailPage: React.FC = () => {
 
                           <div className="space-y-1 font-mono text-[11px] text-slate-700">
                             {ev.alert_id && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-400">ALERT ID:</span>
-                                <span className="font-semibold text-slate-900 select-all">{ev.alert_id}</span>
+                              <div className="flex flex-col sm:flex-row sm:justify-between gap-0.5">
+                                <span className="text-slate-400 shrink-0">ALERT ID:</span>
+                                <span className="font-semibold text-slate-900 select-all break-all sm:break-normal">{ev.alert_id}</span>
                               </div>
                             )}
                             {ev.case_id && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-400">CASE ID:</span>
-                                <span className="font-semibold text-slate-900 select-all">{ev.case_id}</span>
+                              <div className="flex flex-col sm:flex-row sm:justify-between gap-0.5">
+                                <span className="text-slate-400 shrink-0">CASE ID:</span>
+                                <span className="font-semibold text-slate-900 select-all break-all sm:break-normal">{ev.case_id}</span>
                               </div>
                             )}
                             {ev.investigation_id && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-400">INVESTIGATION ID:</span>
-                                <span className="font-semibold text-slate-900 select-all">{ev.investigation_id}</span>
+                              <div className="flex flex-col sm:flex-row sm:justify-between gap-0.5">
+                                <span className="text-slate-400 shrink-0">INVESTIGATION ID:</span>
+                                <span className="font-semibold text-slate-900 select-all break-all sm:break-normal">{ev.investigation_id}</span>
                               </div>
                             )}
                             {ev.escalation_id && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-400">ESCALATION ID:</span>
-                                <span className="font-semibold text-slate-900 select-all">{ev.escalation_id}</span>
+                              <div className="flex flex-col sm:flex-row sm:justify-between gap-0.5">
+                                <span className="text-slate-400 shrink-0">ESCALATION ID:</span>
+                                <span className="font-semibold text-slate-900 select-all break-all sm:break-normal">{ev.escalation_id}</span>
                               </div>
                             )}
                             {ev.coverage_id && (
-                              <div className="flex justify-between">
-                                <span className="text-slate-400">COVERAGE ID:</span>
-                                <span className="font-semibold text-slate-900 select-all">{ev.coverage_id}</span>
+                              <div className="flex flex-col sm:flex-row sm:justify-between gap-0.5">
+                                <span className="text-slate-400 shrink-0">COVERAGE ID:</span>
+                                <span className="font-semibold text-slate-900 select-all break-all sm:break-normal">{ev.coverage_id}</span>
                               </div>
                             )}
                           </div>

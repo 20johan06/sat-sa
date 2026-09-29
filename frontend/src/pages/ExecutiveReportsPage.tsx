@@ -176,6 +176,7 @@ export const ExecutiveReportsPage: React.FC = () => {
                 </label>
                 <Select
                   value={format}
+                  aria-label="Report format type"
                   onChange={(e) => setFormat(e.target.value as ReportFormat)}
                   options={[
                     { value: 'markdown', label: 'Markdown Format (.md)' },
@@ -191,6 +192,7 @@ export const ExecutiveReportsPage: React.FC = () => {
                 <Input
                   type="datetime-local"
                   value={obsStart}
+                  aria-label="Observation Start Date"
                   onChange={(e) => {
                     setObsStart(e.target.value);
                     setDateError(null);
@@ -206,6 +208,7 @@ export const ExecutiveReportsPage: React.FC = () => {
                 <Input
                   type="datetime-local"
                   value={obsEnd}
+                  aria-label="Observation End Date"
                   onChange={(e) => {
                     setObsEnd(e.target.value);
                     setDateError(null);

@@ -635,24 +635,24 @@ export const IngestionAuditPage: React.FC = () => {
         ) : batchDetailData ? (
           <div className="space-y-6 text-xs">
             {/* Batch Status Header */}
-            <div className="flex items-center justify-between p-4 rounded-lg bg-slate-50 border border-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
               <div>
                 <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block">Batch Reference</span>
-                <span className="text-base font-bold font-mono text-slate-900">{batchDetailData.batch_reference}</span>
+                <span className="text-base font-bold font-mono text-slate-900 select-all break-all sm:break-normal">{batchDetailData.batch_reference}</span>
               </div>
               <div>{renderStatusBadge(batchDetailData.status)}</div>
             </div>
 
             {/* Batch Metadata Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-3 bg-slate-50/50 rounded border border-slate-200 space-y-1">
                 <span className="text-slate-500 font-mono block text-[10px]">BATCH ID</span>
-                <span className="font-mono font-semibold text-slate-900 select-all">{batchDetailData.id}</span>
+                <span className="font-mono font-semibold text-slate-900 select-all break-all sm:break-normal">{batchDetailData.id}</span>
               </div>
 
               <div className="p-3 bg-slate-50/50 rounded border border-slate-200 space-y-1">
                 <span className="text-slate-500 font-mono block text-[10px]">TARGET CSE ID</span>
-                <span className="font-mono font-semibold text-slate-900 select-all">{batchDetailData.cse_id}</span>
+                <span className="font-mono font-semibold text-slate-900 select-all break-all sm:break-normal">{batchDetailData.cse_id}</span>
               </div>
 
               <div className="p-3 bg-slate-50/50 rounded border border-slate-200 space-y-1">

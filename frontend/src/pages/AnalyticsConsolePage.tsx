@@ -163,6 +163,7 @@ export const AnalyticsConsolePage: React.FC = () => {
                 <Input
                   type="datetime-local"
                   value={obsStart}
+                  aria-label="Observation Start Date"
                   onChange={(e) => {
                     setObsStart(e.target.value);
                     setValidationError(null);
@@ -177,6 +178,7 @@ export const AnalyticsConsolePage: React.FC = () => {
                 <Input
                   type="datetime-local"
                   value={obsEnd}
+                  aria-label="Observation End Date"
                   onChange={(e) => {
                     setObsEnd(e.target.value);
                     setValidationError(null);

@@ -192,6 +192,7 @@ export const CSERegistryPage: React.FC = () => {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search by entity code or name..."
+                aria-label="Search by entity code or name"
                 startIcon={<Search className="w-4 h-4 text-slate-400" />}
               />
             </div>
@@ -203,6 +204,7 @@ export const CSERegistryPage: React.FC = () => {
                     setSelectedSector(e.target.value);
                     setPage(1);
                   }}
+                  aria-label="Filter by sector"
                   options={SECTOR_OPTIONS}
                 />
               </div>
@@ -213,6 +215,7 @@ export const CSERegistryPage: React.FC = () => {
                     setSelectedStatus(e.target.value);
                     setPage(1);
                   }}
+                  aria-label="Filter by active status"
                   options={STATUS_OPTIONS}
                 />
               </div>
@@ -311,8 +314,17 @@ export const CSERegistryPage: React.FC = () => {
                   {cseList.map((cse) => (
                     <TableRow
                       key={cse.id}
-                      className="cursor-pointer hover:bg-slate-50/90 transition-colors"
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`View details for ${cse.name}`}
+                      className="cursor-pointer hover:bg-slate-50/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                       onClick={() => navigate(`/cses/${cse.id}`)}
+                      onKeyDown={(e) => {
+                        if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
+                          e.preventDefault();
+                          navigate(`/cses/${cse.id}`);
+                        }
+                      }}
                     >
                       <TableCell className="font-mono text-xs font-semibold text-slate-900">
                         {cse.cse_code}
