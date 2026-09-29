@@ -70,13 +70,21 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 def root():
     return {
         "project": settings.PROJECT_NAME,
-        "subtitle": "Supervisory Analytics Tool for SOC Assessment",
-        "version": "0.1.0",
-        "docs": "/docs",
-        "api_v1": settings.API_V1_STR,
         "registered_routes": [
             getattr(route, "path", None)
             for route in app.routes
             if getattr(route, "path", None)
         ],
+        "health_router_routes": [
+            getattr(route, "path", None)
+            for route in health_router.routes
+            if getattr(route, "path", None)
+        ],
+        "api_router_routes": [
+            getattr(route, "path", None)
+            for route in api_router.routes
+            if getattr(route, "path", None)
+        ],
+        "health_router_count": len(health_router.routes),
+        "api_router_count": len(api_router.routes),
     }
