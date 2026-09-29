@@ -73,5 +73,10 @@ def root():
         "subtitle": "Supervisory Analytics Tool for SOC Assessment",
         "version": "0.1.0",
         "docs": "/docs",
-        "api_v1": settings.API_V1_STR
+        "api_v1": settings.API_V1_STR,
+        "registered_routes": [
+            getattr(route, "path", None)
+            for route in app.routes
+            if getattr(route, "path", None)
+        ],
     }
