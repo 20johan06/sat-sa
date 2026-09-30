@@ -16,6 +16,14 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
+    # Security & JWT Configuration
+    JWT_SECRET_KEY: str = "sat_sa_super_secret_jwt_key_2026_change_in_production"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 Hours
+    INITIAL_ADMIN_USERNAME: str = "admin"
+    INITIAL_ADMIN_PASSWORD: str = "Admin@SAT-SA#2026"
+    INITIAL_ADMIN_EMAIL: str = "admin@example.com"
+
     # Database Configuration
     POSTGRES_USER: str = "satsa_user"
     POSTGRES_PASSWORD: str = "satsa_password"

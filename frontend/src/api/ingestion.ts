@@ -10,12 +10,16 @@ import type {
 export async function uploadIngestionFile(
   cseId: string,
   datasetType: DatasetType,
-  file: File
+  file: File,
+  assessmentId?: string
 ): Promise<IngestionBatchResponse> {
   const formData = new FormData();
   formData.append('cse_id', cseId);
   formData.append('dataset_type', datasetType);
   formData.append('file', file);
+  if (assessmentId) {
+    formData.append('assessment_id', assessmentId);
+  }
 
   const response = await apiClient.post<IngestionBatchResponse>(
     '/api/v1/ingestion/upload',

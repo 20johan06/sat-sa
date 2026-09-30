@@ -4,7 +4,8 @@ from typing import Optional, Union
 from fastapi import APIRouter, Depends, Query, HTTPException, Response
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_db, get_current_user, verify_cse_access
+from app.models.user import User
 from app.schemas.reporting import ReportJSONResponse
 from app.services.reporting_service import reporting_service
 
@@ -20,12 +21,15 @@ def generate_cse_report(
     format_param: str = Query("json", alias="format"),
     obs_start: Optional[datetime] = Query(None),
     obs_end: Optional[datetime] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Generates a deterministic supervisory assessment report in JSON or Markdown format.
     Does NOT use AI/LLMs or invent risk statuses.
+    Enforces server-side CSE data isolation.
     """
+    verify_cse_access(cse_id=cse_id, current_user=current_user, db=db)
     fmt = format_param.lower()
     if fmt not in ("json", "markdown"):
         raise HTTPException(

@@ -691,6 +691,65 @@ export const IngestionAuditPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Data Quality Report Metrics Breakdown */}
+            {batchDetailData.quality_report && (
+              <div className="p-4 rounded-lg border border-slate-200 bg-slate-50 space-y-3">
+                <h4 className="font-bold text-slate-900 text-sm flex items-center justify-between">
+                  <span>Data Quality Diagnostics Breakdown</span>
+                  <span className="text-xs font-mono text-slate-500 font-normal">
+                    Quality Pass Rate: {batchDetailData.total_records > 0 ? ((batchDetailData.valid_records / batchDetailData.total_records) * 100).toFixed(1) : '100'}%
+                  </span>
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div className="p-2.5 rounded bg-white border border-slate-200">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-mono">Duplicates</span>
+                    <span className="text-base font-bold font-mono text-amber-700">{batchDetailData.quality_report.duplicate_records_count || 0}</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-white border border-slate-200">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-mono">Timestamp Errors</span>
+                    <span className="text-base font-bold font-mono text-amber-700">{(batchDetailData.quality_report.invalid_timestamps_count || 0) + (batchDetailData.quality_report.impossible_timestamps_count || 0)}</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-white border border-slate-200">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-mono">Broken References</span>
+                    <span className="text-base font-bold font-mono text-rose-700">{batchDetailData.quality_report.broken_references_count || 0}</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-white border border-slate-200">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-mono">Invalid Severities</span>
+                    <span className="text-base font-bold font-mono text-amber-700">{batchDetailData.quality_report.invalid_severity_count || 0}</span>
+                  </div>
+                </div>
+
+                {/* Rejection Diagnostics Table */}
+                {batchDetailData.quality_report.rejections && batchDetailData.quality_report.rejections.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <h5 className="font-semibold text-rose-900 text-xs">Rejection Diagnostics Log</h5>
+                    <div className="max-h-48 overflow-y-auto border border-rose-200 rounded-md bg-white">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="py-2 text-[11px]">Record #</TableHead>
+                            <TableHead className="py-2 text-[11px]">Field</TableHead>
+                            <TableHead className="py-2 text-[11px]">Reason</TableHead>
+                            <TableHead className="py-2 text-[11px]">Code</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {batchDetailData.quality_report.rejections.map((rej, i) => (
+                            <TableRow key={i} className="hover:bg-rose-50/50">
+                              <TableCell className="py-1.5 font-mono text-[11px]">{rej.record_index}</TableCell>
+                              <TableCell className="py-1.5 font-mono text-[11px] font-semibold text-slate-900">{rej.field}</TableCell>
+                              <TableCell className="py-1.5 text-[11px] text-rose-800">{rej.reason}</TableCell>
+                              <TableCell className="py-1.5 font-mono text-[10px] text-slate-600">{rej.code}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Error Diagnostics Summary (If Present) */}
             {batchDetailData.error_summary && (
               <div className="space-y-2">

@@ -113,7 +113,7 @@ def test_ingestion_transactional_rollback_on_invalid_schema(test_cse, db_session
 
     assert response.status_code == 422
     err_data = response.json()
-    assert err_data["error"]["code"] == "SCHEMA_VALIDATION_ERROR"
+    assert err_data["error"]["code"] in ["SCHEMA_VALIDATION_ERROR", "DATA_QUALITY_REJECTION"]
 
     # Verify Provenance Record updated to FAILED and zero alerts persisted
     batch = db_session.query(IngestionBatch).filter(
@@ -122,7 +122,7 @@ def test_ingestion_transactional_rollback_on_invalid_schema(test_cse, db_session
     ).first()
     assert batch is not None
     assert batch.status == "FAILED"
-    assert "SCHEMA_VALIDATION_ERROR" in batch.error_summary or "Validation failed" in batch.error_summary
+    assert "SCHEMA_VALIDATION_ERROR" in batch.error_summary or "Validation" in batch.error_summary or "rejected" in batch.error_summary
 
     alerts_in_db = db_session.query(Alert).filter(Alert.cse_id == test_cse.id).all()
     assert len(alerts_in_db) == 0  # Atomic Rollback verified

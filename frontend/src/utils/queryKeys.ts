@@ -42,6 +42,11 @@ export const queryKeys = {
       ['ingestion', 'batches', params || {}] as const,
     batchDetail: (id: string) => ['ingestion', 'batch', id] as const,
   },
+  assessments: {
+    all: ['assessments'] as const,
+    list: (cseId: string) => ['assessments', 'list', cseId] as const,
+    detail: (id: string) => ['assessments', 'detail', id] as const,
+  },
 };
 
 export default queryKeys;

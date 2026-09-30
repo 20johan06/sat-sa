@@ -8,6 +8,10 @@ from app.models.escalation import Escalation
 from app.models.coverage import MonitoringCoverage
 from app.models.finding import Finding, FindingEvidence
 from app.models.baseline import PeerBaseline
+from app.models.user import User, UserCSE, AuditLog
+from app.models.assessment import Assessment
+from app.models.dataset_version import DatasetVersion
+from app.models.analysis_run import AnalysisRun
 
 __all__ = [
     "CSE",
@@ -21,4 +25,10 @@ __all__ = [
     "Finding",
     "FindingEvidence",
     "PeerBaseline",
+    "User",
+    "UserCSE",
+    "AuditLog",
+    "Assessment",
+    "DatasetVersion",
+    "AnalysisRun",
 ]

@@ -14,7 +14,7 @@ def test_cses(db_session):
         c = CSE(
             id=uuid.uuid4(),
             name=f"Peer Defense CSE {i}",
-            cse_code=f"BM-CSE-{i}-{uuid.uuid4().hex[:4].upper()}",
+            cse_code=f"BM-CSE-{i}-{uuid.uuid4().hex[:8].upper()}",
             sector="DEFENSE",
             criticality_tier="TIER_1"
         )

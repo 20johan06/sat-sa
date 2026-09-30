@@ -7,12 +7,17 @@ import {
   HeartPulse,
   Menu,
   X,
-  ExternalLink
+  ExternalLink,
+  LogOut,
+  UserCheck,
+  FileCheck2
 } from 'lucide-react';
 import IconButton from '../components/ui/IconButton';
+import { useAuth } from '../context/AuthContext';
 
 export const AppShell: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, logout, hasRole } = useAuth();
 
   // Primary top-level global navigation items
   const primaryNavItems = [
@@ -21,9 +26,17 @@ export const AppShell: React.FC = () => {
     { label: 'System Health', path: '/system/health', icon: <HeartPulse className="w-4 h-4" /> },
   ];
 
+  if (hasRole('ADMIN', 'SUPERVISOR')) {
+    primaryNavItems.push({
+      label: 'Security Audit Logs',
+      path: '/audit/logs',
+      icon: <FileCheck2 className="w-4 h-4" />
+    });
+  }
+
   return (
     <div className="min-h-screen bg-surface-bg text-slate-900 flex flex-col font-sans antialiased">
-      {/* Top Authoritative Header Bar (Dark Slate Navy header contrast) */}
+      {/* Top Authoritative Header Bar */}
       <header className="border-b border-header-border bg-header-bg text-white sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Logo & Platform Title */}
@@ -44,12 +57,43 @@ export const AppShell: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Header Metadata & Health Link */}
+          {/* User Profile Badge & Logout */}
           <div className="hidden md:flex items-center gap-4">
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-300 bg-slate-900/80 px-3 py-1.5 rounded-md border border-slate-800">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Backend API Ready</span>
-            </div>
+            {user ? (
+              <div className="flex items-center gap-3 bg-slate-800/90 px-3.5 py-1.5 rounded-lg border border-slate-700">
+                <div className="w-7 h-7 rounded-full bg-indigo-600/30 text-indigo-300 flex items-center justify-center border border-indigo-500/30">
+                  <UserCheck className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-white font-mono">{user.username}</span>
+                    <span className={`text-[10px] font-mono font-bold uppercase px-1.5 py-0.2 rounded border ${
+                      user.role === 'ADMIN' ? 'bg-purple-900/60 text-purple-300 border-purple-700' :
+                      user.role === 'SUPERVISOR' ? 'bg-blue-900/60 text-blue-300 border-blue-700' :
+                      'bg-slate-700 text-slate-300 border-slate-600'
+                    }`}>
+                      {user.role}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">{user.email}</span>
+                </div>
+                <button
+                  onClick={logout}
+                  title="Sign Out"
+                  className="ml-2 p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-md transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <a
+                href="/login"
+                className="text-xs font-semibold px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+              >
+                Sign In
+              </a>
+            )}
+
             <a
               href="/system/health"
               className="text-xs text-slate-300 hover:text-white flex items-center gap-1 font-mono transition-colors"
@@ -97,7 +141,22 @@ export const AppShell: React.FC = () => {
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-800 bg-slate-900 px-4 py-3 space-y-1">
+          <div className="md:hidden border-t border-slate-800 bg-slate-900 px-4 py-3 space-y-2">
+            {user && (
+              <div className="pb-3 mb-2 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-white font-mono">{user.username}</p>
+                  <p className="text-[10px] text-slate-400">{user.role} Role</p>
+                </div>
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 font-medium"
+                >
+                  <LogOut className="w-3.5 h-3.5" /> Sign Out
+                </button>
+              </div>
+            )}
+
             {primaryNavItems.map((item) => (
               <NavLink
                 key={item.path}
@@ -129,7 +188,7 @@ export const AppShell: React.FC = () => {
       <footer className="border-t border-slate-200 bg-white py-4 px-6 text-center text-xs text-slate-500 font-mono">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>SAT-SA — Supervisory Analytics Tool for SOC Assessment</span>
-          <span>SIH 2026 Problem Statement 26157 | Phase 2 Shell</span>
+          <span>SIH 2026 Problem Statement 26157 | Phase 2 RBAC & Auth</span>
         </div>
       </footer>
     </div>

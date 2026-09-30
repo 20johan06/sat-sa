@@ -4,7 +4,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, status, Response, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_db, get_current_user, verify_cse_access
+from app.models.user import User
 from app.models.ingestion import IngestionBatch
 from app.schemas.reporting import (
     AnalyticsRunRequest,
@@ -26,12 +27,15 @@ def run_analytics(
     cse_id: uuid.UUID,
     response: Response,
     payload: Optional[AnalyticsRunRequest] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Executes Phase 5 analytics rules against persisted telemetry for a specific CSE.
     Returns HTTP 201 Created if new findings are generated, HTTP 200 OK if deduplicated.
+    Enforces server-side CSE data isolation.
     """
+    verify_cse_access(cse_id=cse_id, current_user=current_user, db=db)
     req = payload or AnalyticsRunRequest()
 
     if req.obs_start and req.obs_end and req.obs_start >= req.obs_end:
@@ -91,11 +95,14 @@ def get_signals(
     cse_id: uuid.UUID,
     obs_start: Optional[datetime] = Query(None),
     obs_end: Optional[datetime] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Read-only retrieval of the 4 supervisory signals aggregated from persisted findings.
+    Enforces server-side CSE data isolation.
     """
+    verify_cse_access(cse_id=cse_id, current_user=current_user, db=db)
     if obs_start and obs_end and obs_start >= obs_end:
         raise HTTPException(status_code=422, detail="obs_start must be strictly before obs_end")
 

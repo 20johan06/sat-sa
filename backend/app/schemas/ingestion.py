@@ -71,14 +71,37 @@ class CoverageIngestionItem(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
+class RejectionDetail(BaseModel):
+    record_index: int
+    field: str
+    value: Optional[str] = None
+    reason: str
+    code: str
+
+class DataQualityReport(BaseModel):
+    total_records: int = 0
+    valid_records: int = 0
+    rejected_records: int = 0
+    duplicate_records_count: int = 0
+    invalid_timestamps_count: int = 0
+    impossible_timestamps_count: int = 0
+    invalid_severity_count: int = 0
+    missing_cse_count: int = 0
+    broken_references_count: int = 0
+    missing_fields_count: int = 0
+    rejections: List[RejectionDetail] = []
+    coverage_limitations: List[str] = []
+
 class JSONIngestionPayload(BaseModel):
     cse_id: uuid.UUID
     dataset_type: DatasetType
     records: List[Dict[str, Any]]
+    assessment_id: Optional[uuid.UUID] = None
 
 class IngestionBatchResponse(BaseModel):
     id: uuid.UUID
     cse_id: uuid.UUID
+    assessment_id: Optional[uuid.UUID] = None
     batch_reference: str
     source_type: str
     source_filename: str
@@ -87,6 +110,7 @@ class IngestionBatchResponse(BaseModel):
     rejected_records: int
     status: str
     error_summary: Optional[str] = None
+    quality_report: Optional[Dict[str, Any]] = None
     imported_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -94,3 +118,4 @@ class IngestionBatchResponse(BaseModel):
 class IngestionBatchListResponse(BaseModel):
     total: int
     items: List[IngestionBatchResponse]
+

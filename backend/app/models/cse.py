@@ -97,3 +97,18 @@ class CSE(Base):
         back_populates="cse",
         cascade="save-update, merge"
     )
+    assessments: Mapped[List["Assessment"]] = relationship(
+        "Assessment",
+        back_populates="cse",
+        cascade="save-update, merge"
+    )
+    dataset_versions: Mapped[List["DatasetVersion"]] = relationship(
+        "DatasetVersion",
+        back_populates="cse",
+        cascade="save-update, merge"
+    )
+    analysis_runs: Mapped[List["AnalysisRun"]] = relationship(
+        "AnalysisRun",
+        back_populates="cse",
+        cascade="save-update, merge"
+    )

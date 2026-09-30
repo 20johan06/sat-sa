@@ -30,11 +30,14 @@ export function useIngestionBatchDetailQuery(batchId: string) {
 export function useUploadIngestionMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ cseId, datasetType, file }: { cseId: string; datasetType: DatasetType; file: File }) =>
-      uploadIngestionFile(cseId, datasetType, file),
+    mutationFn: ({ cseId, datasetType, file, assessmentId }: { cseId: string; datasetType: DatasetType; file: File; assessmentId?: string }) =>
+      uploadIngestionFile(cseId, datasetType, file, assessmentId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.ingestion.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.cses.summary(variables.cseId) });
+      if (variables.assessmentId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.assessments.all });
+      }
     },
   });
 }

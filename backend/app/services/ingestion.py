@@ -7,8 +7,10 @@ from app.models.cse import CSE
 from app.models.ingestion import IngestionBatch
 from app.schemas.ingestion import DatasetType, IngestionBatchResponse
 from app.services.ingestion_parsers import CSVIngestionParser, JSONIngestionParser, BaseIngestionParser
-from app.services.ingestion_validators import validate_file_security, validate_and_normalize_records
+from app.services.ingestion_validators import validate_file_security, perform_comprehensive_data_quality_validation
 from app.services.ingestion_persistence import persist_ingestion_records
+from app.services.dataset_version_service import DatasetVersionService
+from app.schemas.dataset_version import DatasetVersionCreate
 from app.utils.exceptions import EntityNotFoundException, IngestionException, SATSAException
 from app.config.settings import settings
 
@@ -20,25 +22,25 @@ class IngestionService:
         cse_id: uuid.UUID,
         dataset_type: DatasetType,
         filename: str,
-        content: bytes
+        content: bytes,
+        assessment_id: Optional[uuid.UUID] = None,
+        user_id: Optional[uuid.UUID] = None
     ) -> IngestionBatch:
         """
         Orchestrates file upload ingestion (CSV or JSON).
-        Creates a traceable IngestionBatch provenance record and handles transactional persistence.
+        Performs data quality analysis, records batch provenance, persists valid records,
+        and generates an immutable DatasetVersion linked to Assessment.
         """
-        # 1. Verify target CSE exists
         cse = db.query(CSE).filter(CSE.id == cse_id).first()
         if not cse:
             raise EntityNotFoundException("CSE", cse_id)
 
-        # 2. Security validation (size, filename, path traversal)
         safe_filename = validate_file_security(
             filename=filename,
             content_length=len(content),
             max_bytes=settings.MAX_INGESTION_FILE_SIZE_BYTES
         )
 
-        # 3. Generate provenance batch reference
         timestamp_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d%H%M%S")
         batch_ref = f"BATCH-{timestamp_str}-{uuid.uuid4().hex[:8].upper()}"
 
@@ -48,6 +50,7 @@ class IngestionService:
         batch = IngestionBatch(
             id=uuid.uuid4(),
             cse_id=cse_id,
+            assessment_id=assessment_id,
             batch_reference=batch_ref,
             source_type=source_type,
             source_filename=safe_filename,
@@ -62,7 +65,6 @@ class IngestionService:
         db.refresh(batch)
 
         try:
-            # 4. Parse content
             parser: BaseIngestionParser
             if source_type == "CSV":
                 parser = CSVIngestionParser()
@@ -70,43 +72,81 @@ class IngestionService:
                 parser = JSONIngestionParser()
 
             raw_records = parser.parse(content)
-            total_count = len(raw_records)
 
-            # 5. Schema validation and normalization
-            validated_items = validate_and_normalize_records(
+            # Perform Data Quality Validation
+            validated_items, quality_report = perform_comprehensive_data_quality_validation(
+                db=db,
+                cse_id=cse_id,
                 dataset_type=dataset_type,
                 records=raw_records
             )
 
-            # 6. Transactional Database Persistence
-            inserted_count = persist_ingestion_records(
-                db=db,
-                batch=batch,
-                dataset_type=dataset_type,
-                items=validated_items
-            )
+            batch.total_records = quality_report.total_records
+            batch.quality_report = quality_report.model_dump()
 
-            # Update batch success state
-            batch.total_records = total_count
+            if quality_report.rejected_records > 0:
+                # Reject entire batch if any record fails validation to ensure zero corrupt data entry
+                batch.status = "FAILED"
+                batch.valid_records = 0
+                batch.rejected_records = quality_report.rejected_records
+                err_summary = f"Data quality validation rejected {quality_report.rejected_records} of {quality_report.total_records} record(s)."
+                if quality_report.rejections:
+                    err_summary += f" Sample error: {quality_report.rejections[0].reason}"
+                batch.error_summary = err_summary
+                db.commit()
+                db.refresh(batch)
+                raise IngestionException(
+                    message=err_summary,
+                    code="DATA_QUALITY_REJECTION",
+                    status_code=422,
+                    details=quality_report.model_dump()
+                )
+
+            # Persist Valid Records
+            inserted_count = 0
+            if validated_items:
+                inserted_count = persist_ingestion_records(
+                    db=db,
+                    batch=batch,
+                    dataset_type=dataset_type,
+                    items=validated_items
+                )
+
             batch.valid_records = inserted_count
             batch.rejected_records = 0
             batch.status = "COMPLETED"
             db.commit()
+
+            # Create Linked Immutable DatasetVersion
+            dv_req = DatasetVersionCreate(
+                cse_id=cse_id,
+                assessment_id=assessment_id,
+                batch_id=batch.id,
+                dataset_type=dataset_type,
+                source_filename=safe_filename
+            )
+            raw_payloads = [item.model_dump(mode="json") for item in validated_items]
+            DatasetVersionService.create_dataset_version(
+                db=db,
+                req=dv_req,
+                user_id=user_id,
+                records_payload=raw_payloads
+            )
+
             db.refresh(batch)
             return batch
 
         except Exception as e:
             db.rollback()
-            # Update provenance record with failed status and error details
             err_msg = e.message if isinstance(e, SATSAException) else str(e)
             batch.status = "FAILED"
             batch.error_summary = err_msg
-            batch.rejected_records = batch.total_records if batch.total_records > 0 else 1
+            if batch.total_records == 0 and 'raw_records' in locals():
+                batch.total_records = len(raw_records)
             db.add(batch)
             db.commit()
             db.refresh(batch)
-            
-            # Re-raise original or wrapped exception
+
             if isinstance(e, SATSAException):
                 raise e
             else:
@@ -122,6 +162,8 @@ class IngestionService:
         cse_id: uuid.UUID,
         dataset_type: DatasetType,
         records: List[Dict[str, Any]],
+        assessment_id: Optional[uuid.UUID] = None,
+        user_id: Optional[uuid.UUID] = None,
         source_name: str = "api_payload.json"
     ) -> IngestionBatch:
         """
@@ -137,6 +179,7 @@ class IngestionService:
         batch = IngestionBatch(
             id=uuid.uuid4(),
             cse_id=cse_id,
+            assessment_id=assessment_id,
             batch_reference=batch_ref,
             source_type="JSON",
             source_filename=source_name,
@@ -154,23 +197,62 @@ class IngestionService:
             if not records or len(records) == 0:
                 raise IngestionException("JSON payload contains no records.", code="EMPTY_DATASET", status_code=400)
 
-            validated_items = validate_and_normalize_records(
+            validated_items, quality_report = perform_comprehensive_data_quality_validation(
+                db=db,
+                cse_id=cse_id,
                 dataset_type=dataset_type,
                 records=records
             )
 
-            inserted_count = persist_ingestion_records(
-                db=db,
-                batch=batch,
-                dataset_type=dataset_type,
-                items=validated_items
-            )
+            batch.total_records = quality_report.total_records
+            batch.quality_report = quality_report.model_dump()
 
-            batch.total_records = len(records)
+            if quality_report.rejected_records > 0:
+                batch.status = "FAILED"
+                batch.valid_records = 0
+                batch.rejected_records = quality_report.rejected_records
+                err_summary = f"Data quality validation rejected {quality_report.rejected_records} of {quality_report.total_records} record(s)."
+                if quality_report.rejections:
+                    err_summary += f" Sample error: {quality_report.rejections[0].reason}"
+                batch.error_summary = err_summary
+                db.commit()
+                db.refresh(batch)
+                raise IngestionException(
+                    message=err_summary,
+                    code="DATA_QUALITY_REJECTION",
+                    status_code=422,
+                    details=quality_report.model_dump()
+                )
+
+            inserted_count = 0
+            if validated_items:
+                inserted_count = persist_ingestion_records(
+                    db=db,
+                    batch=batch,
+                    dataset_type=dataset_type,
+                    items=validated_items
+                )
+
             batch.valid_records = inserted_count
             batch.rejected_records = 0
             batch.status = "COMPLETED"
             db.commit()
+
+            dv_req = DatasetVersionCreate(
+                cse_id=cse_id,
+                assessment_id=assessment_id,
+                batch_id=batch.id,
+                dataset_type=dataset_type,
+                source_filename=source_name
+            )
+            raw_payloads = [item.model_dump(mode="json") for item in validated_items]
+            DatasetVersionService.create_dataset_version(
+                db=db,
+                req=dv_req,
+                user_id=user_id,
+                records_payload=raw_payloads
+            )
+
             db.refresh(batch)
             return batch
 
@@ -193,6 +275,15 @@ class IngestionService:
                     status_code=500
                 )
 
+            if isinstance(e, SATSAException):
+                raise e
+            else:
+                raise IngestionException(
+                    message=f"JSON ingestion failed: {str(e)}",
+                    code="INGESTION_PROCESSING_FAILED",
+                    status_code=500
+                )
+
     @staticmethod
     def get_batch(db: Session, batch_id: uuid.UUID) -> IngestionBatch:
         batch = db.query(IngestionBatch).filter(IngestionBatch.id == batch_id).first()
@@ -204,12 +295,15 @@ class IngestionService:
     def list_batches(
         db: Session,
         cse_id: Optional[uuid.UUID] = None,
+        allowed_cse_ids: Optional[List[uuid.UUID]] = None,
         skip: int = 0,
         limit: int = 50
     ) -> Dict[str, Any]:
         query = db.query(IngestionBatch)
         if cse_id:
             query = query.filter(IngestionBatch.cse_id == cse_id)
+        elif allowed_cse_ids is not None:
+            query = query.filter(IngestionBatch.cse_id.in_(allowed_cse_ids))
 
         total = query.count()
         items = query.order_by(IngestionBatch.imported_at.desc()).offset(skip).limit(limit).all()

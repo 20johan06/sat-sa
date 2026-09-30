@@ -42,6 +42,12 @@ class Finding(Base):
         index=True,
         nullable=True
     )
+    analysis_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("analysis_runs.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True
+    )
     category: Mapped[str] = mapped_column(
         String(100),
         index=True,
@@ -94,6 +100,7 @@ class Finding(Base):
     # Relationships
     cse: Mapped["CSE"] = relationship("CSE", back_populates="findings")
     batch: Mapped["IngestionBatch"] = relationship("IngestionBatch", back_populates="findings")
+    analysis_run: Mapped["AnalysisRun | None"] = relationship("AnalysisRun", back_populates="findings")
     evidence_links: Mapped[List["FindingEvidence"]] = relationship(
         "FindingEvidence",
         back_populates="finding",

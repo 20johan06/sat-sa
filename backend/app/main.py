@@ -48,9 +48,12 @@ async def satsa_exception_handler(
     return JSONResponse(
         status_code=exc.status_code,
         content={
-            "error": exc.error_code,
-            "message": exc.message,
-            "details": exc.details,
+            "error": {
+                "code": exc.code,
+                "message": exc.message,
+                "details": exc.details,
+            },
+            "detail": exc.message,
         },
     )
 

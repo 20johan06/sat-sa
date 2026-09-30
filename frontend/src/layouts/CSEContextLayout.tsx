@@ -8,6 +8,7 @@ import {
   FileText,
   UploadCloud,
   Building2,
+  FolderKanban,
 } from 'lucide-react';
 import PageContainer from '../components/layout/PageContainer';
 import Badge from '../components/ui/Badge';
@@ -22,6 +23,7 @@ export const CSEContextLayout: React.FC = () => {
 
   const secondaryNavTabs = [
     { label: 'Overview', path: `/cses/${activeCseId}`, end: true, icon: <LayoutDashboard className="w-4 h-4" /> },
+    { label: 'Assessments Workspace', path: `/cses/${activeCseId}/assessments`, end: false, icon: <FolderKanban className="w-4 h-4" /> },
     { label: 'Analytics Console', path: `/cses/${activeCseId}/analytics`, end: false, icon: <Activity className="w-4 h-4" /> },
     { label: 'Findings Registry', path: `/cses/${activeCseId}/findings`, end: false, icon: <Search className="w-4 h-4" /> },
     { label: 'Peer Benchmarks', path: `/cses/${activeCseId}/benchmarks`, end: false, icon: <BarChart3 className="w-4 h-4" /> },

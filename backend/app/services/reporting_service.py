@@ -170,6 +170,7 @@ class ReportingService:
     def get_findings(
         db: Session,
         cse_id: Optional[uuid.UUID] = None,
+        allowed_cse_ids: Optional[List[uuid.UUID]] = None,
         category: Optional[str] = None,
         severity: Optional[str] = None,
         status: Optional[str] = None,
@@ -178,7 +179,7 @@ class ReportingService:
         obs_end: Optional[datetime] = None,
         page: int = 1,
         page_size: int = 20
-    ) -> PaginatedItemsSource:
+    ) -> PaginatedFindingsResponse:
         if category:
             cat_upper = category.upper()
             if cat_upper in DEPRECATED_CATEGORIES:
@@ -189,6 +190,8 @@ class ReportingService:
         query = db.query(Finding)
         if cse_id:
             query = query.filter(Finding.cse_id == cse_id)
+        elif allowed_cse_ids is not None:
+            query = query.filter(Finding.cse_id.in_(allowed_cse_ids))
         if category:
             query = query.filter(Finding.category == category.upper())
         if severity:
