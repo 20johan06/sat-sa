@@ -11,7 +11,8 @@ from app.services.auth_service import AuthService
 from app.utils.exceptions import EntityNotFoundException
 from app.schemas.reporting import (
     PaginatedFindingsResponse,
-    FindingDetailSchema
+    FindingDetailSchema,
+    FindingStatusUpdateSchema
 )
 from app.services.reporting_service import (
     reporting_service,
@@ -102,3 +103,34 @@ def get_finding(
 
     verify_cse_access(cse_id=finding.cse_id, current_user=current_user, db=db)
     return reporting_service.get_finding_detail(db=db, finding_id=finding_id)
+
+@router.patch(
+    "/{finding_id}/status",
+    response_model=FindingDetailSchema,
+    summary="Update supervisory finding review status with audit notes"
+)
+def update_finding_status(
+    finding_id: uuid.UUID,
+    payload: FindingStatusUpdateSchema,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Updates the supervisory review status of a finding (NEW, UNDER_REVIEW, CONFIRMED, NOT_SUBSTANTIATED, DISMISSED, NEEDS_MORE_EVIDENCE)
+    and records an audit review note. Enforces server-side CSE authorization.
+    """
+    finding = db.query(Finding).filter(Finding.id == finding_id).first()
+    if not finding:
+        raise EntityNotFoundException("Finding", finding_id)
+
+    verify_cse_access(cse_id=finding.cse_id, current_user=current_user, db=db)
+    try:
+        return reporting_service.update_finding_status(
+            db=db,
+            finding_id=finding_id,
+            new_status=payload.status,
+            notes=payload.notes
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=422, detail=str(ve))
+

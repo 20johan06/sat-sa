@@ -35,6 +35,27 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   } else if (norm === 'NEW') {
     styles = 'bg-sky-50 text-sky-800 border-sky-200 font-medium';
     icon = <Activity className="w-3 h-3 text-sky-600" />;
+    label = 'NEW';
+  } else if (norm === 'UNDER_REVIEW') {
+    styles = 'bg-amber-50 text-amber-800 border-amber-200 font-medium';
+    icon = <Activity className="w-3 h-3 text-amber-600" />;
+    label = 'UNDER REVIEW';
+  } else if (norm === 'CONFIRMED') {
+    styles = 'bg-rose-50 text-rose-800 border-rose-200 font-medium';
+    icon = <AlertTriangle className="w-3 h-3 text-rose-600" />;
+    label = 'CONFIRMED';
+  } else if (norm === 'NOT_SUBSTANTIATED') {
+    styles = 'bg-slate-100 text-slate-700 border-slate-300 font-medium';
+    icon = <MinusCircle className="w-3 h-3 text-slate-500" />;
+    label = 'NOT SUBSTANTIATED';
+  } else if (norm === 'DISMISSED') {
+    styles = 'bg-slate-100 text-slate-600 border-slate-200 font-medium';
+    icon = <MinusCircle className="w-3 h-3 text-slate-400" />;
+    label = 'DISMISSED';
+  } else if (norm === 'NEEDS_MORE_EVIDENCE') {
+    styles = 'bg-purple-50 text-purple-800 border-purple-200 font-medium';
+    icon = <HelpCircle className="w-3 h-3 text-purple-600" />;
+    label = 'NEEDS MORE EVIDENCE';
   } else if (norm === 'SECTOR_PEER_GROUP') {
     styles = 'bg-indigo-50 text-indigo-800 border-indigo-200 font-medium';
     icon = <CheckCircle2 className="w-3 h-3 text-indigo-600" />;

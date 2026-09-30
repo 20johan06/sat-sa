@@ -64,6 +64,18 @@ class FindingEvidenceResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class ExplainabilitySchema(BaseModel):
+    what: str
+    why: str
+    how: str
+    evidence: str
+    baseline: str
+    impact: str
+
+class FindingStatusUpdateSchema(BaseModel):
+    status: str
+    notes: Optional[str] = None
+
 class FindingItemSchema(BaseModel):
     id: uuid.UUID
     finding_code: str
@@ -79,11 +91,13 @@ class FindingItemSchema(BaseModel):
     status: str
     evidence_count: int
     detected_at: datetime
+    explainability: Optional[ExplainabilitySchema] = None
 
     model_config = ConfigDict(from_attributes=True)
 
 class FindingDetailSchema(FindingItemSchema):
     evidence: List[FindingEvidenceResponse]
+
 
 class PaginatedFindingsResponse(BaseModel):
     items: List[FindingItemSchema]

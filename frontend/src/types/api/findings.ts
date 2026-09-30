@@ -16,6 +16,20 @@ export interface FindingEvidenceResponse {
   created_at: string;
 }
 
+export interface ExplainabilitySchema {
+  what: string;
+  why: string;
+  how: string;
+  evidence: string;
+  baseline: string;
+  impact: string;
+}
+
+export interface FindingStatusUpdatePayload {
+  status: string;
+  notes?: string;
+}
+
 export interface FindingItemSchema {
   id: string;
   finding_code: string;
@@ -31,6 +45,7 @@ export interface FindingItemSchema {
   status: string;
   evidence_count: number;
   detected_at: string;
+  explainability?: ExplainabilitySchema;
 }
 
 export interface FindingDetailSchema extends FindingItemSchema {

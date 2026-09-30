@@ -26,7 +26,9 @@ from app.schemas.reporting import (
     PaginatedFindingsResponse,
     PeerBenchmarkResponse,
     PeerBaselineItemSchema,
-    ReportJSONResponse
+    ReportJSONResponse,
+    ExplainabilitySchema,
+    FindingStatusUpdateSchema
 )
 from app.utils.exceptions import EntityNotFoundException
 
@@ -37,6 +39,53 @@ SEVERITY_ORDER = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1}
 
 class ReportingService:
     """Service handling supervisory API reporting queries and aggregations."""
+
+    @staticmethod
+    def build_explainability(f: Finding, evidence_count: int) -> ExplainabilitySchema:
+        """Constructs canonical 6-part supervisory explainability (WHAT, WHY, HOW, EVIDENCE, BASELINE, IMPACT)."""
+        metrics = f.metrics_json or {}
+
+        # 1. WHAT
+        what_str = f.description
+
+        # 2. WHY
+        why_str = f.rationale
+
+        # 3. HOW
+        how_str = f"Detection Method: {f.detection_method}."
+        if "z_score" in metrics:
+            how_str += f" Calculated Z-score: {metrics['z_score']:.2f} (Threshold: |Z| > 2.0)."
+        elif "p5_cutoff" in metrics:
+            how_str += f" Evaluated against 5th percentile lower-tail runtime cutoff (P5 = {metrics['p5_cutoff']:.1f}s)."
+        elif "silence_hours" in metrics:
+            how_str += f" Evaluated against silent period threshold ({metrics['silence_hours']} hours without operational telemetry)."
+
+        # 4. EVIDENCE
+        ev_str = f"{evidence_count} direct operational evidence record(s) linked in database."
+
+        # 5. BASELINE
+        if "baseline_mean" in metrics:
+            std_dev = metrics.get("baseline_std_dev", 0.0)
+            baseline_str = f"Peer Baseline Mean: {metrics['baseline_mean']:.4f} (StdDev: {std_dev:.4f}, Peer Group: {metrics.get('peer_group', 'SECTOR')})."
+        elif f.category == "EXECUTION_GAP":
+            baseline_str = "Operational SLA expectation based on canonical workflow/escalation timeline standards."
+        elif f.category == "NEGATIVE_SPACE":
+            baseline_str = "100% expected monitoring coverage and continuous telemetry reporting baseline."
+        else:
+            baseline_str = "Historical baseline frequency for expected operational metrics."
+
+        # 6. IMPACT
+        impact_str = f"Evaluated Supervisory Impact: {f.severity} severity finding requiring supervisory monitoring and verification."
+
+        return ExplainabilitySchema(
+            what=what_str,
+            why=why_str,
+            how=how_str,
+            evidence=ev_str,
+            baseline=baseline_str,
+            impact=impact_str
+        )
+
 
     @staticmethod
     def get_cse_summary(db: Session, cse_id: uuid.UUID) -> CSESummarySchema:
@@ -214,6 +263,7 @@ class ReportingService:
         items = []
         for f in findings_list:
             ev_count = db.query(FindingEvidence).filter(FindingEvidence.finding_id == f.id).count()
+            explainability = ReportingService.build_explainability(f, ev_count)
             item = FindingItemSchema(
                 id=f.id,
                 finding_code=f.finding_code,
@@ -228,7 +278,8 @@ class ReportingService:
                 metrics_json=f.metrics_json,
                 status=f.status,
                 evidence_count=ev_count,
-                detected_at=f.detected_at
+                detected_at=f.detected_at,
+                explainability=explainability
             )
             items.append(item)
 
@@ -255,6 +306,7 @@ class ReportingService:
 
         ev_records = db.query(FindingEvidence).filter(FindingEvidence.finding_id == f.id).all()
         evidence_list = [FindingEvidenceResponse.model_validate(ev) for ev in ev_records]
+        explainability = ReportingService.build_explainability(f, len(evidence_list))
 
         return FindingDetailSchema(
             id=f.id,
@@ -271,8 +323,50 @@ class ReportingService:
             status=f.status,
             evidence_count=len(evidence_list),
             detected_at=f.detected_at,
+            explainability=explainability,
             evidence=evidence_list
         )
+
+    @staticmethod
+    def update_finding_status(
+        db: Session,
+        finding_id: uuid.UUID,
+        new_status: str,
+        notes: Optional[str] = None
+    ) -> FindingDetailSchema:
+        """Updates supervisory finding review status and appends review evidence note."""
+        valid_statuses = {
+            "NEW",
+            "UNDER_REVIEW",
+            "CONFIRMED",
+            "NOT_SUBSTANTIATED",
+            "DISMISSED",
+            "NEEDS_MORE_EVIDENCE"
+        }
+        status_upper = new_status.upper()
+        if status_upper not in valid_statuses:
+            raise ValueError(f"Invalid status '{new_status}'. Must be one of {sorted(valid_statuses)}")
+
+        f = db.query(Finding).filter(Finding.id == finding_id).first()
+        if not f:
+            raise EntityNotFoundException("Finding", finding_id)
+
+        f.status = status_upper
+        f.updated_at = datetime.now(timezone.utc)
+
+        if notes and notes.strip():
+            evidence_note = FindingEvidence(
+                finding_id=f.id,
+                evidence_type="SUPERVISORY_REVIEW",
+                notes=f"Supervisory status updated to {status_upper}: {notes.strip()}",
+                created_at=datetime.now(timezone.utc)
+            )
+            db.add(evidence_note)
+
+        db.commit()
+        db.refresh(f)
+        return ReportingService.get_finding_detail(db, finding_id)
+
 
     @staticmethod
     def get_benchmarks(

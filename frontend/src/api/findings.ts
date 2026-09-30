@@ -2,7 +2,8 @@ import apiClient from './client';
 import type {
   PaginatedFindingsResponse,
   FindingDetailSchema,
-  FindingQueryParams
+  FindingQueryParams,
+  FindingStatusUpdatePayload
 } from '../types/api/findings';
 
 export async function listFindings(
@@ -23,3 +24,15 @@ export async function getFindingDetail(
   const response = await apiClient.get<FindingDetailSchema>(`/api/v1/findings/${findingId}`);
   return response.data;
 }
+
+export async function updateFindingStatus(
+  findingId: string,
+  payload: FindingStatusUpdatePayload
+): Promise<FindingDetailSchema> {
+  const response = await apiClient.patch<FindingDetailSchema>(
+    `/api/v1/findings/${findingId}/status`,
+    payload
+  );
+  return response.data;
+}
+

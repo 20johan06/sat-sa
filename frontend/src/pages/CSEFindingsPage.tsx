@@ -51,9 +51,12 @@ const SEVERITY_OPTIONS = [
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
-  { value: 'NEW', label: 'NEW' },
-  { value: 'ACKNOWLEDGED', label: 'ACKNOWLEDGED' },
-  { value: 'RESOLVED', label: 'RESOLVED' },
+  { value: 'NEW', label: 'New' },
+  { value: 'UNDER_REVIEW', label: 'Under Review' },
+  { value: 'CONFIRMED', label: 'Confirmed' },
+  { value: 'NOT_SUBSTANTIATED', label: 'Not Substantiated' },
+  { value: 'DISMISSED', label: 'Dismissed' },
+  { value: 'NEEDS_MORE_EVIDENCE', label: 'Needs More Evidence' },
 ];
 
 export const CSEFindingsPage: React.FC = () => {
