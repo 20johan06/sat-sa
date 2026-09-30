@@ -1,21 +1,24 @@
 import uuid
-from datetime import datetime, timezone
+import datetime
+from datetime import timezone
 from typing import List, Tuple, Optional
 from sqlalchemy.orm import Session
 from app.models.coverage import MonitoringCoverage
 from app.models.finding import Finding, FindingEvidence
+from app.services.analytics_helpers import calculate_evidence_strength, map_rule_to_capability
 
 class NegativeSpaceAnalyzer:
     """
-    Analyzes operational evidence for Negative Space signals (NS-01 to NS-02).
+    Analyzes operational evidence for Canonical Negative Space signals (NS-01 to NS-02).
+    Distinguishes 'Missing evidence' from 'Evidence of absence'.
     """
 
     @staticmethod
     def analyze_ns01_inactive_expected_coverage(
         db: Session,
         cse_id: uuid.UUID,
-        obs_start: Optional[datetime] = None,
-        obs_end: Optional[datetime] = None,
+        obs_start: Optional[datetime.datetime] = None,
+        obs_end: Optional[datetime.datetime] = None,
         batch_id: Optional[uuid.UUID] = None
     ) -> List[Tuple[Finding, List[FindingEvidence]]]:
         """
@@ -30,7 +33,7 @@ class NegativeSpaceAnalyzer:
         coverages = query.all()
         results: List[Tuple[Finding, List[FindingEvidence]]] = []
 
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.datetime.now(timezone.utc)
 
         for cov in coverages:
             is_inactive = (cov.is_active == False)
@@ -46,6 +49,8 @@ class NegativeSpaceAnalyzer:
                     continue
 
                 reason_str = "marked inactive" if is_inactive else "no telemetry received in expected period"
+                ev_strength = calculate_evidence_strength(sample_size=1, has_explicit_evidence=True)
+                capability = map_rule_to_capability(category="NEGATIVE_SPACE", rule_code="NS01")
 
                 finding = Finding(
                     id=uuid.uuid4(),
@@ -65,12 +70,19 @@ class NegativeSpaceAnalyzer:
                     ),
                     detection_method="EXPLICIT_COVERAGE_CHECK",
                     metrics_json={
+                        "rule_code": "NS-01",
+                        "metric": "expected_log_source_active_status",
+                        "observed_value": "INACTIVE" if is_inactive else "STALE",
+                        "baseline_value": "ACTIVE",
                         "coverage_id": str(cov.id),
                         "log_source_category": cov.log_source_category,
                         "is_expected": cov.is_expected,
                         "is_active": cov.is_active,
                         "coverage_percentage": cov.coverage_percentage,
-                        "last_received_at": cov.last_received_at.isoformat() if cov.last_received_at else None
+                        "last_received_at": cov.last_received_at.isoformat() if cov.last_received_at else None,
+                        "evidence_strength": ev_strength,
+                        "capability": capability,
+                        "supervisory_relevance": "Inactive telemetry sources mask potential security incidents (negative space)."
                     },
                     status="NEW"
                 )
@@ -95,7 +107,6 @@ class NegativeSpaceAnalyzer:
         """
         NS-02: Absent Escalation Evidence for High-Priority Incident Case.
         Constraint: Requires explicit high-priority escalation expectation flag (requires_high_priority_escalation).
-        Returns EXPECTATION_NOT_CONFIGURED in locked schema.
+        If unconfigured: Returns no finding (state EXPECTATION_NOT_CONFIGURED).
         """
-        # Explicit expectation is unconfigured in current schema
         return []

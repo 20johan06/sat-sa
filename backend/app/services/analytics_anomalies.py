@@ -6,10 +6,12 @@ from sqlalchemy.orm import Session
 from app.models.alert import Alert
 from app.models.finding import Finding, FindingEvidence
 from app.config.analytics_settings import analytics_settings
+from app.services.analytics_helpers import calculate_evidence_strength, map_rule_to_capability
 
 class AnomalyAnalyzer:
     """
-    Analyzes operational metrics for statistical anomalies using MAD (Median Absolute Deviation).
+    Analyzes operational metrics for statistical anomalies using MAD (Median Absolute Deviation)
+    and Modified Z-score techniques. Every finding is fully explainable.
     """
 
     @staticmethod
@@ -25,6 +27,7 @@ class AnomalyAnalyzer:
         Aggregates Alert.detected_at by UTC calendar day.
         Calculates median, MAD, and Modified Z-score.
         Requires N >= 10 days. MAD == 0 returns insufficient variance (no finding).
+        Exposes WHAT, WHY, HOW, OBSERVED, BASELINE, DEVIATION, EVIDENCE, and SUPERVISORY RELEVANCE.
         """
         query = db.query(Alert).filter(Alert.cse_id == cse_id)
         if obs_start:
@@ -54,6 +57,9 @@ class AnomalyAnalyzer:
             return []
 
         results: List[Tuple[Finding, List[FindingEvidence]]] = []
+        sample_size = len(distinct_days)
+        ev_strength = calculate_evidence_strength(sample_size=sample_size, has_explicit_evidence=True)
+        capability = map_rule_to_capability(category="ANOMALY", rule_code="AN01")
 
         for d, count in zip(distinct_days, counts):
             mod_z = 0.6745 * (count - median_val) / mad_val
@@ -86,13 +92,18 @@ class AnomalyAnalyzer:
                     ),
                     detection_method="MAD_MODIFIED_Z_SCORE",
                     metrics_json={
+                        "rule_code": "AN-01",
                         "metric": "daily_alert_volume",
-                        "date": day_str,
                         "observed_value": int(count),
-                        "median": median_val,
-                        "mad": mad_val,
+                        "baseline_value": round(median_val, 1),
+                        "mad": round(mad_val, 1),
+                        "deviation": round(mod_z, 4),
                         "modified_z_score": round(mod_z, 4),
-                        "observation_days_count": len(distinct_days)
+                        "observation_days_count": sample_size,
+                        "date": day_str,
+                        "evidence_strength": ev_strength,
+                        "capability": capability,
+                        "supervisory_relevance": "Unusual volume spikes or drops indicate potential cyber attacks, system misconfigurations, or ingestion telemetry anomalies."
                     },
                     status="NEW"
                 )

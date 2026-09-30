@@ -10,6 +10,7 @@ from app.models.escalation import Escalation
 from app.models.baseline import PeerBaseline
 from app.models.finding import Finding, FindingEvidence
 from app.config.analytics_settings import analytics_settings
+from app.services.analytics_helpers import calculate_evidence_strength, map_rule_to_capability
 
 class BenchmarkAnalyzer:
     """
@@ -49,6 +50,8 @@ class BenchmarkAnalyzer:
         now_utc = datetime.datetime.now(datetime.timezone.utc)
         p_start = obs_start or datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
         p_end = obs_end or now_utc
+
+        capability = map_rule_to_capability(category="BENCHMARK", rule_code="BM01")
 
         # --- Metric 1: alert_investigation_rate ---
         cse_investigation_rates: Dict[uuid.UUID, float] = {}
@@ -98,6 +101,7 @@ class BenchmarkAnalyzer:
                     finding_code = f"FND-BM01-INV-{cse_id.hex[:6]}-{date_tag}"
                     existing = db.query(Finding).filter(Finding.finding_code == finding_code).first()
                     if not existing:
+                        ev_strength = calculate_evidence_strength(sample_size=len(rates_list), has_explicit_evidence=True)
                         finding = Finding(
                             id=uuid.uuid4(),
                             finding_code=finding_code,
@@ -116,13 +120,20 @@ class BenchmarkAnalyzer:
                             ),
                             detection_method="PEER_BENCHMARK_Z_SCORE",
                             metrics_json={
+                                "rule_code": "BM-01-INV",
                                 "metric_name": "alert_investigation_rate",
+                                "metric": "alert_investigation_rate",
                                 "peer_group": peer_group_name,
                                 "observed_value": round(target_val, 4),
+                                "baseline_value": round(mean_rate, 4),
                                 "peer_mean": round(mean_rate, 4),
                                 "peer_std": round(std_rate, 4),
+                                "deviation": round(z_score, 4),
                                 "z_score": round(z_score, 4),
-                                "peer_sample_size": len(rates_list)
+                                "peer_sample_size": len(rates_list),
+                                "evidence_strength": ev_strength,
+                                "capability": capability,
+                                "supervisory_relevance": "Deviating from peer investigation rates indicates potential operational under-reporting or over-filtering."
                             },
                             status="NEW"
                         )
@@ -176,6 +187,7 @@ class BenchmarkAnalyzer:
                     finding_code = f"FND-BM01-ESC-{cse_id.hex[:6]}-{date_tag}"
                     existing = db.query(Finding).filter(Finding.finding_code == finding_code).first()
                     if not existing:
+                        ev_strength = calculate_evidence_strength(sample_size=len(crit_list), has_explicit_evidence=True)
                         finding = Finding(
                             id=uuid.uuid4(),
                             finding_code=finding_code,
@@ -194,13 +206,20 @@ class BenchmarkAnalyzer:
                             ),
                             detection_method="PEER_BENCHMARK_Z_SCORE",
                             metrics_json={
+                                "rule_code": "BM-01-ESC",
                                 "metric_name": "critical_escalation_rate",
+                                "metric": "critical_escalation_rate",
                                 "peer_group": peer_group_name,
                                 "observed_value": round(target_crit_val, 4),
+                                "baseline_value": round(mean_crit, 4),
                                 "peer_mean": round(mean_crit, 4),
                                 "peer_std": round(std_crit, 4),
+                                "deviation": round(z_score_crit, 4),
                                 "z_score": round(z_score_crit, 4),
-                                "peer_sample_size": len(crit_list)
+                                "peer_sample_size": len(crit_list),
+                                "evidence_strength": ev_strength,
+                                "capability": capability,
+                                "supervisory_relevance": "Low critical escalation rate compared to sector peers signals potential escalation suppression."
                             },
                             status="NEW"
                         )
