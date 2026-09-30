@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useFindingsQuery } from '../hooks/api/useFindings';
 import type { FindingQueryParams } from '../types/api/findings';
+import { SupervisoryAttentionQueue } from '../components/supervisory/SupervisoryAttentionQueue';
 
 const CATEGORY_OPTIONS = [
   { value: '', label: 'All Categories' },
@@ -144,6 +145,11 @@ export const NationalFindingsPage: React.FC = () => {
           </Alert>
         </div>
       )}
+
+      {/* Phase 6 Supervisory Attention Queue Component */}
+      <div className="mb-6">
+        <SupervisoryAttentionQueue />
+      </div>
 
       {/* Master Filter Form */}
       <Card className="mb-6">

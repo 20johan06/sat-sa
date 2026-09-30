@@ -71,11 +71,11 @@ export const PeerBenchmarksPage: React.FC = () => {
   const renderStatusBadge = (status?: PeerGroupStatus | string) => {
     switch (status) {
       case 'SECTOR_PEER_GROUP':
-        return <Badge variant="success">SECTOR PEER GROUP</Badge>;
+        return <Badge variant="success">SUFFICIENT SECTOR DATA (N ≥ 3)</Badge>;
       case 'POPULATION_FALLBACK':
-        return <Badge variant="warning">POPULATION FALLBACK</Badge>;
+        return <Badge variant="warning" className="font-mono">POPULATION FALLBACK ACTIVE</Badge>;
       case 'NO_APPLICABLE_BASELINE':
-        return <Badge variant="outline">NO APPLICABLE BASELINE</Badge>;
+        return <Badge variant="outline">INSUFFICIENT DATA</Badge>;
       default:
         return <Badge variant="outline">{status || 'UNKNOWN'}</Badge>;
     }
@@ -94,6 +94,21 @@ export const PeerBenchmarksPage: React.FC = () => {
         title="Peer Group & Sector Benchmarking Inspector"
         description="Inspect persisted sector baseline distributions, sample sizes, and population fallbacks for the target Critical Sector Entity."
       />
+
+      {/* Supervisory Guidance & Explainability Callout */}
+      <div className="mb-6 p-4 bg-blue-50/70 border border-blue-200 rounded-md text-xs text-blue-900 space-y-1 font-sans">
+        <div className="font-bold flex items-center gap-1.5 text-blue-900 font-mono uppercase">
+          <BarChart3 className="w-4 h-4 text-blue-700" />
+          Canonical BM-01 Benchmark Guidance
+        </div>
+        <p className="text-slate-700">
+          Peer benchmarking evaluates target CSE alert investigation and critical escalation rates against sector baselines.
+          Deviations (|Z| &gt; 2.0) are presented for explainable oversight.
+        </p>
+        <p className="font-semibold text-blue-800 font-mono text-[11px] pt-1">
+          Supervisory Interpretation: &quot;Peer deviation detected — supervisory review may be warranted.&quot;
+        </p>
+      </div>
 
       {/* Observation Period Selector Card */}
       <Card className="mb-6">

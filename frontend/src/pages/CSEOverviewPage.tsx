@@ -23,6 +23,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { useCseQuery, useCseSummaryQuery } from '../hooks/api/useCses';
+import { EntitySupervisoryOverviewCard } from '../components/supervisory/EntitySupervisoryOverviewCard';
 
 export const CSEOverviewPage: React.FC = () => {
   const { cse_id } = useParams<{ cse_id: string }>();
@@ -52,8 +53,8 @@ export const CSEOverviewPage: React.FC = () => {
           { label: cse ? cse.name : `Entity ${activeCseId.slice(0, 8)}...` },
           { label: 'Overview' },
         ]}
-        title="Entity Profile & Telemetry Overview"
-        description="Aggregated operational telemetry counts, alert breakdowns, and active supervisory findings summary."
+        title="Entity Profile & Supervisory Overview"
+        description="Aggregated supervisory attention indicators, operational telemetry counts, and active finding rationale."
       />
 
       {isLoading ? (
@@ -127,6 +128,9 @@ export const CSEOverviewPage: React.FC = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Phase 6 Entity Supervisory Overview Card */}
+          {activeCseId && <EntitySupervisoryOverviewCard cseId={activeCseId} />}
 
           {/* Telemetry Key Metric Cards */}
           {summary && (
