@@ -8,3 +8,5 @@ class ErrorDetail(BaseModel):
 
 class HTTPErrorResponse(BaseModel):
     error: ErrorDetail
+
+

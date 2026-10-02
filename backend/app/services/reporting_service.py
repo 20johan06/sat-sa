@@ -11,9 +11,11 @@ from app.models.case import Case
 from app.models.investigation import Investigation
 from app.models.escalation import Escalation
 from app.models.coverage import MonitoringCoverage
-from app.models.finding import Finding, FindingEvidence
+from app.models.finding import Finding, FindingEvidence, FindingReviewHistory
 from app.models.baseline import PeerBaseline
 from app.models.ingestion import IngestionBatch
+from app.models.user import User
+from app.services.auth_service import AuthService
 
 from app.schemas.reporting import (
     CSESummarySchema,
@@ -23,6 +25,7 @@ from app.schemas.reporting import (
     FindingItemSchema,
     FindingDetailSchema,
     FindingEvidenceResponse,
+    FindingReviewHistoryResponse,
     PaginatedFindingsResponse,
     PeerBenchmarkResponse,
     PeerBaselineItemSchema,
@@ -308,6 +311,27 @@ class ReportingService:
         evidence_list = [FindingEvidenceResponse.model_validate(ev) for ev in ev_records]
         explainability = ReportingService.build_explainability(f, len(evidence_list))
 
+        history_records = db.query(FindingReviewHistory).filter(
+            FindingReviewHistory.finding_id == f.id
+        ).order_by(desc(FindingReviewHistory.created_at)).all()
+
+        review_history_list = []
+        for h in history_records:
+            review_history_list.append(FindingReviewHistoryResponse(
+                id=h.id,
+                finding_id=h.finding_id,
+                user_id=h.user_id,
+                username=h.user.username if h.user else None,
+                user_role=h.user.role if h.user else None,
+                cse_id=h.cse_id,
+                action_type=h.action_type,
+                previous_status=h.previous_status,
+                new_status=h.new_status,
+                note_text=h.note_text,
+                evidence_request_details=h.evidence_request_details,
+                created_at=h.created_at
+            ))
+
         return FindingDetailSchema(
             id=f.id,
             finding_code=f.finding_code,
@@ -324,7 +348,92 @@ class ReportingService:
             evidence_count=len(evidence_list),
             detected_at=f.detected_at,
             explainability=explainability,
-            evidence=evidence_list
+            evidence=evidence_list,
+            review_history=review_history_list
+        )
+
+    @staticmethod
+    def get_finding_review_history(db: Session, finding_id: uuid.UUID) -> List[FindingReviewHistoryResponse]:
+        f = db.query(Finding).filter(Finding.id == finding_id).first()
+        if not f:
+            raise EntityNotFoundException("Finding", finding_id)
+
+        history_records = db.query(FindingReviewHistory).filter(
+            FindingReviewHistory.finding_id == finding_id
+        ).order_by(desc(FindingReviewHistory.created_at)).all()
+
+        results = []
+        for h in history_records:
+            results.append(FindingReviewHistoryResponse(
+                id=h.id,
+                finding_id=h.finding_id,
+                user_id=h.user_id,
+                username=h.user.username if h.user else None,
+                user_role=h.user.role if h.user else None,
+                cse_id=h.cse_id,
+                action_type=h.action_type,
+                previous_status=h.previous_status,
+                new_status=h.new_status,
+                note_text=h.note_text,
+                evidence_request_details=h.evidence_request_details,
+                created_at=h.created_at
+            ))
+        return results
+
+    @staticmethod
+    def add_examiner_note(
+        db: Session,
+        finding_id: uuid.UUID,
+        acting_user: User,
+        note_text: str
+    ) -> FindingReviewHistoryResponse:
+        f = db.query(Finding).filter(Finding.id == finding_id).first()
+        if not f:
+            raise EntityNotFoundException("Finding", finding_id)
+
+        if not note_text or not note_text.strip():
+            raise ValueError("Note text cannot be empty.")
+
+        history_entry = FindingReviewHistory(
+            finding_id=f.id,
+            user_id=acting_user.id,
+            cse_id=f.cse_id,
+            action_type="EXAMINER_NOTE",
+            previous_status=None,
+            new_status=None,
+            note_text=note_text.strip(),
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(history_entry)
+
+        AuthService.log_audit_event(
+            db=db,
+            user_id=acting_user.id,
+            username=acting_user.username,
+            action_type="EXAMINER_NOTE_ADDED",
+            cse_id=f.cse_id,
+            target_entity="Finding",
+            target_id=f.id,
+            status="SUCCESS",
+            details_json={"note_length": len(note_text.strip())}
+        )
+
+        db.commit()
+        db.refresh(history_entry)
+
+        return FindingReviewHistoryResponse(
+            id=history_entry.id,
+            finding_id=history_entry.finding_id,
+            user_id=history_entry.user_id,
+            username=acting_user.username,
+            user_role=acting_user.role,
+            cse_id=history_entry.cse_id,
+            action_type=history_entry.action_type,
+            previous_status=history_entry.previous_status,
+            new_status=history_entry.new_status,
+            note_text=history_entry.note_text,
+            evidence_request_details=history_entry.evidence_request_details,
+            created_at=history_entry.created_at
         )
 
     @staticmethod
@@ -332,9 +441,11 @@ class ReportingService:
         db: Session,
         finding_id: uuid.UUID,
         new_status: str,
-        notes: Optional[str] = None
+        notes: Optional[str] = None,
+        acting_user: Optional[User] = None,
+        evidence_request_details: Optional[Dict[str, Any]] = None
     ) -> FindingDetailSchema:
-        """Updates supervisory finding review status and appends review evidence note."""
+        """Updates supervisory finding review status enforcing allowed transitions and logging immutable review history."""
         valid_statuses = {
             "NEW",
             "UNDER_REVIEW",
@@ -351,17 +462,89 @@ class ReportingService:
         if not f:
             raise EntityNotFoundException("Finding", finding_id)
 
+        current_status = f.status.upper()
+        if current_status == status_upper:
+            raise ValueError(f"Finding is already in status '{status_upper}'.")
+
+        allowed_transitions = {
+            ("NEW", "UNDER_REVIEW"),
+            ("NEW", "CONFIRMED"),
+            ("NEW", "DISMISSED"),
+            ("UNDER_REVIEW", "CONFIRMED"),
+            ("UNDER_REVIEW", "NOT_SUBSTANTIATED"),
+            ("UNDER_REVIEW", "DISMISSED"),
+            ("UNDER_REVIEW", "NEEDS_MORE_EVIDENCE"),
+            ("NEEDS_MORE_EVIDENCE", "UNDER_REVIEW"),
+            ("NEEDS_MORE_EVIDENCE", "CONFIRMED"),
+        }
+
+        if (current_status, status_upper) not in allowed_transitions:
+            raise ValueError(
+                f"Status transition from '{current_status}' to '{status_upper}' is forbidden by Phase 11 supervisory rules."
+            )
+
+        mandatory_note_transitions = {
+            ("NEW", "CONFIRMED"),
+            ("NEW", "DISMISSED"),
+            ("UNDER_REVIEW", "CONFIRMED"),
+            ("UNDER_REVIEW", "NOT_SUBSTANTIATED"),
+            ("UNDER_REVIEW", "DISMISSED"),
+            ("UNDER_REVIEW", "NEEDS_MORE_EVIDENCE"),
+            ("NEEDS_MORE_EVIDENCE", "CONFIRMED"),
+        }
+
+        if (current_status, status_upper) in mandatory_note_transitions:
+            if not notes or not notes.strip():
+                raise ValueError(
+                    f"An examiner note/rationale is required for status transition from '{current_status}' to '{status_upper}'."
+                )
+
         f.status = status_upper
         f.updated_at = datetime.now(timezone.utc)
 
+        user_id = acting_user.id if acting_user else None
+        username = acting_user.username if acting_user else None
+
+        action_type = "EVIDENCE_REQUEST" if status_upper == "NEEDS_MORE_EVIDENCE" else "STATUS_CHANGE"
+
+        history_entry = FindingReviewHistory(
+            finding_id=f.id,
+            user_id=user_id,
+            cse_id=f.cse_id,
+            action_type=action_type,
+            previous_status=current_status,
+            new_status=status_upper,
+            note_text=notes.strip() if notes else None,
+            evidence_request_details=evidence_request_details,
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(history_entry)
+
+        # Retain FindingEvidence record for supervisory review notes
         if notes and notes.strip():
             evidence_note = FindingEvidence(
                 finding_id=f.id,
                 evidence_type="SUPERVISORY_REVIEW",
-                notes=f"Supervisory status updated to {status_upper}: {notes.strip()}",
+                notes=f"Supervisory status updated from {current_status} to {status_upper}: {notes.strip()}",
                 created_at=datetime.now(timezone.utc)
             )
             db.add(evidence_note)
+
+        AuthService.log_audit_event(
+            db=db,
+            user_id=user_id,
+            username=username,
+            action_type="EVIDENCE_REQUESTED" if status_upper == "NEEDS_MORE_EVIDENCE" else "STATUS_CHANGED",
+            cse_id=f.cse_id,
+            target_entity="Finding",
+            target_id=f.id,
+            status="SUCCESS",
+            details_json={
+                "previous_status": current_status,
+                "new_status": status_upper,
+                "has_notes": bool(notes and notes.strip())
+            }
+        )
 
         db.commit()
         db.refresh(f)

@@ -84,23 +84,24 @@ def test_update_finding_status_workflow(db_session):
     db_session.add(finding)
     db_session.commit()
 
-    # 1. Authoritative V2 statuses MUST be accepted (200 OK)
-    authoritative_statuses = [
-        "NEW",
-        "UNDER_REVIEW",
-        "CONFIRMED",
-        "NOT_SUBSTANTIATED",
-        "DISMISSED",
-        "NEEDS_MORE_EVIDENCE"
-    ]
-    for st in authoritative_statuses:
-        res = client.patch(
-            f"/api/v1/findings/{finding.id}/status",
-            json={"status": st, "notes": f"Testing transition to {st}"},
-            headers=headers
-        )
-        assert res.status_code == 200, f"Expected 200 for status {st}, got {res.status_code}"
-        assert res.json()["status"] == st
+    # 1. Authoritative V2 statuses MUST be accepted following valid state transitions (200 OK)
+    # NEW -> UNDER_REVIEW
+    res1 = client.patch(
+        f"/api/v1/findings/{finding.id}/status",
+        json={"status": "UNDER_REVIEW", "notes": "Initiating review"},
+        headers=headers
+    )
+    assert res1.status_code == 200
+    assert res1.json()["status"] == "UNDER_REVIEW"
+
+    # UNDER_REVIEW -> CONFIRMED (requires note)
+    res2 = client.patch(
+        f"/api/v1/findings/{finding.id}/status",
+        json={"status": "CONFIRMED", "notes": "Confirming finding rationale"},
+        headers=headers
+    )
+    assert res2.status_code == 200
+    assert res2.json()["status"] == "CONFIRMED"
 
     # 2. Legacy / unapproved statuses MUST be rejected (422 Unprocessable Entity)
     legacy_statuses = ["RESOLVED", "CLOSED", "ACKNOWLEDGED", "FIXED", "INVALID_STATUS"]
@@ -129,13 +130,13 @@ def test_update_finding_status_cse_isolation(db_session):
 
     # Create CSE-scoped user restricted to CSE A
     uname = f"user_a_{uuid.uuid4().hex[:6]}"
-    cse_user = User(id=uuid.uuid4(), username=uname, email=f"{uname}@example.com", hashed_password="pw", role="ANALYST", is_active=True)
+    cse_user = User(id=uuid.uuid4(), username=uname, email=f"{uname}@example.com", hashed_password="pw", role="SUPERVISOR", is_active=True)
     db_session.add(cse_user)
     db_session.commit()
     db_session.add(UserCSE(user_id=cse_user.id, cse_id=cse_a.id))
     db_session.commit()
 
-    user_token = create_access_token({"sub": str(cse_user.id), "role": "ANALYST"})
+    user_token = create_access_token({"sub": str(cse_user.id), "role": "SUPERVISOR"})
     user_headers = {"Authorization": f"Bearer {user_token}"}
 
     # Finding belonging to CSE B

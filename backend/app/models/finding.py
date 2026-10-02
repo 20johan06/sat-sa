@@ -106,6 +106,10 @@ class Finding(Base):
         back_populates="finding",
         cascade="all, delete-orphan"
     )
+    review_history: Mapped[List["FindingReviewHistory"]] = relationship(
+        "FindingReviewHistory",
+        back_populates="finding"
+    )
 
 class FindingEvidence(Base):
     """Drill-Down Link Table connecting Findings to Underlying Operational Evidence."""
@@ -174,3 +178,64 @@ class FindingEvidence(Base):
     investigation: Mapped["Investigation"] = relationship("Investigation", back_populates="finding_links")
     escalation: Mapped["Escalation"] = relationship("Escalation", back_populates="finding_links")
     coverage: Mapped["MonitoringCoverage"] = relationship("MonitoringCoverage", back_populates="finding_links")
+
+class FindingReviewHistory(Base):
+    """Immutable/append-only supervisory finding review history and audit event trail."""
+    __tablename__ = "finding_review_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    finding_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("findings.id", ondelete="RESTRICT"),
+        index=True,
+        nullable=False
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True
+    )
+    cse_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("cses.id", ondelete="RESTRICT"),
+        index=True,
+        nullable=False
+    )
+    action_type: Mapped[str] = mapped_column(
+        String(50),
+        index=True,
+        nullable=False
+    )
+    previous_status: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True
+    )
+    new_status: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True
+    )
+    note_text: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+    evidence_request_details: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB,
+        nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+        nullable=False
+    )
+
+    # Relationships
+    finding: Mapped["Finding"] = relationship("Finding", back_populates="review_history")
+    user: Mapped["User | None"] = relationship("User")
+    cse: Mapped["CSE"] = relationship("CSE")
+

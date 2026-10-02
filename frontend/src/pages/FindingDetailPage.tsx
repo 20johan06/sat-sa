@@ -26,8 +26,18 @@ import {
   Compass,
   CheckCircle2,
   MessageSquare,
+  History,
+  FileQuestion,
+  UserCheck,
+  PlusCircle,
 } from 'lucide-react';
-import { useFindingQuery, useUpdateFindingStatusMutation } from '../hooks/api/useFindings';
+import {
+  useFindingQuery,
+  useUpdateFindingStatusMutation,
+  useFindingHistoryQuery,
+  useAddExaminerNoteMutation,
+  useRequestEvidenceMutation,
+} from '../hooks/api/useFindings';
 import { useCseQuery } from '../hooks/api/useCses';
 
 export const FindingDetailPage: React.FC = () => {
@@ -37,25 +47,93 @@ export const FindingDetailPage: React.FC = () => {
 
   const { data: finding, isLoading, isError, error, refetch } = useFindingQuery(activeFindingId);
   const { data: cse } = useCseQuery(finding?.cse_id || '');
+  const { data: historyList, isLoading: isHistoryLoading } = useFindingHistoryQuery(activeFindingId);
+
   const updateStatusMutation = useUpdateFindingStatusMutation(activeFindingId);
+  const addNoteMutation = useAddExaminerNoteMutation(activeFindingId);
+  const requestEvidenceMutation = useRequestEvidenceMutation(activeFindingId);
 
   const [newStatus, setNewStatus] = useState<string>('');
   const [reviewNotes, setReviewNotes] = useState<string>('');
+  const [standaloneNote, setStandaloneNote] = useState<string>('');
+  const [statusError, setStatusError] = useState<string>('');
+
+  // Evidence request form state
+  const [showEvidenceRequestForm, setShowEvidenceRequestForm] = useState<boolean>(false);
+  const [evidenceNote, setEvidenceNote] = useState<string>('');
+  const [dataTypesInput, setDataTypesInput] = useState<string>('syslog, auth_log');
+  const [timeWindowInput, setTimeWindowInput] = useState<string>('');
+  const [evidenceDescription, setEvidenceDescription] = useState<string>('');
 
   const handleUpdateStatus = (e: React.FormEvent) => {
     e.preventDefault();
+    setStatusError('');
     const targetStatus = newStatus || finding?.status || 'UNDER_REVIEW';
+
+    // Client validation for disposition transitions requiring notes
+    const mandatoryNoteTargets = ['CONFIRMED', 'DISMISSED', 'NOT_SUBSTANTIATED', 'NEEDS_MORE_EVIDENCE'];
+    if (mandatoryNoteTargets.includes(targetStatus) && (!reviewNotes || !reviewNotes.trim())) {
+      setStatusError(`An examiner note/rationale is required when transitioning status to ${targetStatus}.`);
+      return;
+    }
+
     updateStatusMutation.mutate(
       { status: targetStatus, notes: reviewNotes },
       {
         onSuccess: () => {
           setReviewNotes('');
+          setStatusError('');
+        },
+        onError: (err: any) => {
+          setStatusError(err?.response?.data?.detail || err?.message || 'Failed to update status');
+        },
+      }
+    );
+  };
+
+  const handleAddStandaloneNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!standaloneNote.trim()) return;
+
+    addNoteMutation.mutate(
+      { note_text: standaloneNote },
+      {
+        onSuccess: () => {
+          setStandaloneNote('');
+        },
+      }
+    );
+  };
+
+  const handleRequestEvidenceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!evidenceNote.trim()) return;
+
+    const dataTypes = dataTypesInput
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    requestEvidenceMutation.mutate(
+      {
+        note_text: evidenceNote,
+        required_data_types: dataTypes.length > 0 ? dataTypes : ['syslog'],
+        requested_time_window: timeWindowInput || undefined,
+        description: evidenceDescription || undefined,
+      },
+      {
+        onSuccess: () => {
+          setEvidenceNote('');
+          setTimeWindowInput('');
+          setEvidenceDescription('');
+          setShowEvidenceRequestForm(false);
         },
       }
     );
   };
 
   const exp = finding?.explainability;
+  const isTerminalState = ['CONFIRMED', 'DISMISSED', 'NOT_SUBSTANTIATED'].includes(finding?.status || '');
 
   return (
     <PageContainer>
@@ -63,10 +141,10 @@ export const FindingDetailPage: React.FC = () => {
         breadcrumbs={[
           { label: 'National Findings', href: '/findings' },
           { label: finding ? finding.finding_code : `Finding ${activeFindingId.slice(0, 8)}...` },
-          { label: 'Evidence & Explainability' },
+          { label: 'Evidence & Examiner Review' },
         ]}
         title={finding ? finding.title : 'Supervisory Finding & Operational Evidence Detail'}
-        description="Detailed breakdown of finding code, detection method, supervisory rationale, rule metrics, 6-part explainability, and traceable evidence links."
+        description="Detailed breakdown of finding code, detection method, supervisory rationale, rule metrics, 6-part explainability, traceable evidence links, and immutable review history."
         actions={
           <Button
             variant="outline"
@@ -288,6 +366,95 @@ export const FindingDetailPage: React.FC = () => {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Phase 11 Supervisory Review & Audit Timeline */}
+              <Card>
+                <CardHeader className="border-b border-slate-100 flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <History className="w-4 h-4 text-blue-700" />
+                    <div>
+                      <CardTitle className="text-sm font-bold">Supervisory Review & Audit History</CardTitle>
+                      <CardDescription>Immutable chronological trail of examiner decisions, notes, and status changes</CardDescription>
+                    </div>
+                  </div>
+                  <Badge variant="outline" size="sm" className="font-mono">
+                    {historyList ? historyList.length : 0} Entry(s)
+                  </Badge>
+                </CardHeader>
+                <CardContent className="p-5">
+                  {isHistoryLoading ? (
+                    <Skeleton className="h-24 w-full" />
+                  ) : !historyList || historyList.length === 0 ? (
+                    <EmptyState
+                      icon={<History className="w-6 h-6 text-slate-400" />}
+                      title="No Review History Records"
+                      description="No supervisory review actions or notes have been logged for this finding yet."
+                    />
+                  ) : (
+                    <div className="relative border-l-2 border-slate-200 ml-3 space-y-4">
+                      {historyList.map((hist) => (
+                        <div key={hist.id} className="ml-5 relative">
+                          <div className="absolute -left-[27px] top-1.5 w-3 h-3 rounded-full bg-blue-600 border-2 border-white" />
+                          <div className="bg-slate-50 p-3.5 rounded-md border border-slate-200 text-xs space-y-1.5">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 font-mono">
+                                <span className="font-bold text-slate-900">{hist.action_type}</span>
+                                {hist.previous_status && hist.new_status && (
+                                  <span className="text-[11px] text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                                    {hist.previous_status} → <span className="font-bold text-blue-700">{hist.new_status}</span>
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] font-mono text-slate-500">
+                                {new Date(hist.created_at).toLocaleString()}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-[11px] text-slate-600 font-mono">
+                              <UserCheck className="w-3.5 h-3.5 text-slate-500" />
+                              <span>Actor: <strong className="text-slate-800">{hist.username || hist.user_id || 'System'}</strong></span>
+                              {hist.user_role && (
+                                <Badge variant="outline" size="sm" className="text-[10px] py-0 px-1 font-mono">
+                                  {hist.user_role}
+                                </Badge>
+                              )}
+                            </div>
+
+                            {hist.note_text && (
+                              <p className="text-xs text-slate-800 bg-white p-2.5 rounded border border-slate-200 font-sans leading-relaxed">
+                                "{hist.note_text}"
+                              </p>
+                            )}
+
+                            {hist.evidence_request_details && (
+                              <div className="bg-amber-50/70 p-2.5 rounded border border-amber-200 font-mono text-[11px] space-y-1">
+                                <div className="text-amber-800 font-bold flex items-center gap-1">
+                                  <FileQuestion className="w-3.5 h-3.5" />
+                                  <span>Evidence Request Details:</span>
+                                </div>
+                                <div>
+                                  <span className="text-amber-700 font-semibold">Required Data Types: </span>
+                                  <span className="text-slate-900">
+                                    {Array.isArray(hist.evidence_request_details.required_data_types)
+                                      ? hist.evidence_request_details.required_data_types.join(', ')
+                                      : String(hist.evidence_request_details.required_data_types)}
+                                  </span>
+                                </div>
+                                {Boolean(hist.evidence_request_details.requested_time_window) && (
+                                  <div>
+                                    <span className="text-amber-700 font-semibold">Time Window: </span>
+                                    <span className="text-slate-900">{String(hist.evidence_request_details.requested_time_window)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
             {/* Right Column: Supervisory Review Action & Traceable Evidence Links */}
@@ -299,56 +466,199 @@ export const FindingDetailPage: React.FC = () => {
                     <MessageSquare className="w-4 h-4 text-blue-700" />
                     <CardTitle className="text-sm font-bold">Supervisory Review Action</CardTitle>
                   </div>
-                  <CardDescription>Review finding lifecycle status and log audit notes</CardDescription>
+                  <CardDescription>Execute formal finding status transition</CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  {isTerminalState ? (
+                    <div className="p-3 bg-slate-100 border border-slate-200 rounded text-xs text-slate-700 font-mono">
+                      🔒 Finding is in terminal disposition status (<strong>{finding.status}</strong>). Status reopening is forbidden.
+                    </div>
+                  ) : (
+                    <form onSubmit={handleUpdateStatus} className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-mono text-slate-600 mb-1">
+                          SUPERVISORY STATUS TRANSITION
+                        </label>
+                        <select
+                          value={newStatus || finding.status}
+                          onChange={(e) => setNewStatus(e.target.value)}
+                          className="w-full text-xs font-mono p-2 rounded border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        >
+                          {finding.status === 'NEW' && (
+                            <>
+                              <option value="NEW">New (Current)</option>
+                              <option value="UNDER_REVIEW">Under Review</option>
+                              <option value="CONFIRMED">Confirmed</option>
+                              <option value="DISMISSED">Dismissed</option>
+                            </>
+                          )}
+                          {finding.status === 'UNDER_REVIEW' && (
+                            <>
+                              <option value="UNDER_REVIEW">Under Review (Current)</option>
+                              <option value="CONFIRMED">Confirmed</option>
+                              <option value="NOT_SUBSTANTIATED">Not Substantiated</option>
+                              <option value="DISMISSED">Dismissed</option>
+                              <option value="NEEDS_MORE_EVIDENCE">Needs More Evidence</option>
+                            </>
+                          )}
+                          {finding.status === 'NEEDS_MORE_EVIDENCE' && (
+                            <>
+                              <option value="NEEDS_MORE_EVIDENCE">Needs More Evidence (Current)</option>
+                              <option value="UNDER_REVIEW">Under Review</option>
+                              <option value="CONFIRMED">Confirmed</option>
+                            </>
+                          )}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-mono text-slate-600 mb-1">
+                          EXAMINER RATIONALE / AUDIT NOTE
+                        </label>
+                        <textarea
+                          value={reviewNotes}
+                          onChange={(e) => setReviewNotes(e.target.value)}
+                          placeholder="Attach examiner rationale or review note (Required for Confirmed, Dismissed, Not Substantiated, Needs More Evidence)..."
+                          rows={3}
+                          className="w-full text-xs p-2 rounded border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-sans"
+                        />
+                      </div>
+
+                      {statusError && (
+                        <p className="text-xs font-mono text-rose-600 bg-rose-50 p-2 rounded border border-rose-200">
+                          ⚠ {statusError}
+                        </p>
+                      )}
+
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        className="w-full"
+                        isLoading={updateStatusMutation.isPending}
+                        icon={<CheckCircle2 className="w-4 h-4" />}
+                      >
+                        Execute Status Transition
+                      </Button>
+                    </form>
+                  )}
+
+                  {/* Evidence Request Quick Trigger Button for UNDER_REVIEW findings */}
+                  {finding.status === 'UNDER_REVIEW' && !showEvidenceRequestForm && (
+                    <div className="pt-2 border-t border-slate-100">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs"
+                        icon={<FileQuestion className="w-4 h-4 text-amber-600" />}
+                        onClick={() => setShowEvidenceRequestForm(true)}
+                      >
+                        Request More Evidence
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Structured Evidence Request Form */}
+                  {showEvidenceRequestForm && (
+                    <form onSubmit={handleRequestEvidenceSubmit} className="p-3 bg-amber-50/80 rounded border border-amber-200 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-amber-900 flex items-center gap-1">
+                          <FileQuestion className="w-3.5 h-3.5 text-amber-600" />
+                          Structured Evidence Request
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[11px] p-1 text-slate-500"
+                          onClick={() => setShowEvidenceRequestForm(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-mono text-amber-900 mb-1">
+                          REQUIRED DATA TYPES (Comma-separated)
+                        </label>
+                        <input
+                          type="text"
+                          value={dataTypesInput}
+                          onChange={(e) => setDataTypesInput(e.target.value)}
+                          placeholder="e.g. syslog, auth_log, firewall_pcap"
+                          className="w-full text-xs font-mono p-1.5 rounded border border-amber-300 bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-mono text-amber-900 mb-1">
+                          TIME WINDOW (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={timeWindowInput}
+                          onChange={(e) => setTimeWindowInput(e.target.value)}
+                          placeholder="e.g. 2026-10-01T00:00 to 2026-10-02T12:00"
+                          className="w-full text-xs font-mono p-1.5 rounded border border-amber-300 bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-mono text-amber-900 mb-1">
+                          EXAMINER REQUEST RATIONALE (Required)
+                        </label>
+                        <textarea
+                          value={evidenceNote}
+                          onChange={(e) => setEvidenceNote(e.target.value)}
+                          placeholder="Explain why current evidence is insufficient..."
+                          rows={2}
+                          className="w-full text-xs p-1.5 rounded border border-amber-300 bg-white"
+                          required
+                        />
+                      </div>
+
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        className="w-full bg-amber-700 hover:bg-amber-800 text-white"
+                        isLoading={requestEvidenceMutation.isPending}
+                      >
+                        Submit Evidence Request
+                      </Button>
+                    </form>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Add Standalone Examiner Note */}
+              <Card>
+                <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+                  <div className="flex items-center gap-2">
+                    <PlusCircle className="w-4 h-4 text-slate-700" />
+                    <CardTitle className="text-sm font-bold">Add Examiner Note</CardTitle>
+                  </div>
+                  <CardDescription>Append standalone review commentary to history</CardDescription>
                 </CardHeader>
                 <CardContent className="p-4">
-                  <form onSubmit={handleUpdateStatus} className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-mono text-slate-600 mb-1">
-                        SUPERVISORY STATUS
-                      </label>
-                      <select
-                        value={newStatus || finding.status}
-                        onChange={(e) => setNewStatus(e.target.value)}
-                        className="w-full text-xs font-mono p-2 rounded border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      >
-                        <option value="NEW">New</option>
-                        <option value="UNDER_REVIEW">Under Review</option>
-                        <option value="CONFIRMED">Confirmed</option>
-                        <option value="NOT_SUBSTANTIATED">Not Substantiated</option>
-                        <option value="DISMISSED">Dismissed</option>
-                        <option value="NEEDS_MORE_EVIDENCE">Needs More Evidence</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-mono text-slate-600 mb-1">
-                        SUPERVISORY AUDIT NOTE
-                      </label>
-                      <textarea
-                        value={reviewNotes}
-                        onChange={(e) => setReviewNotes(e.target.value)}
-                        placeholder="Attach supervisory review comments or audit notes..."
-                        rows={3}
-                        className="w-full text-xs p-2 rounded border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-sans"
-                      />
-                    </div>
-
+                  <form onSubmit={handleAddStandaloneNote} className="space-y-3">
+                    <textarea
+                      value={standaloneNote}
+                      onChange={(e) => setStandaloneNote(e.target.value)}
+                      placeholder="Add examiner observation note..."
+                      rows={2}
+                      className="w-full text-xs p-2 rounded border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
                     <Button
                       type="submit"
-                      variant="primary"
+                      variant="outline"
                       size="sm"
                       className="w-full"
-                      isLoading={updateStatusMutation.isPending}
-                      icon={<CheckCircle2 className="w-4 h-4" />}
+                      isLoading={addNoteMutation.isPending}
+                      disabled={!standaloneNote.trim()}
                     >
-                      Update Review Status
+                      Append Note to History
                     </Button>
-                    {updateStatusMutation.isSuccess && (
-                      <p className="text-[11px] font-mono text-emerald-600 text-center font-medium">
-                        ✓ Status updated successfully
-                      </p>
-                    )}
                   </form>
                 </CardContent>
               </Card>

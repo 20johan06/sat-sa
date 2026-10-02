@@ -6,7 +6,7 @@ from app.models.case import Case
 from app.models.investigation import Investigation
 from app.models.escalation import Escalation
 from app.models.coverage import MonitoringCoverage
-from app.models.finding import Finding, FindingEvidence
+from app.models.finding import Finding, FindingEvidence, FindingReviewHistory
 from app.models.baseline import PeerBaseline
 from app.models.user import User, UserCSE, AuditLog
 from app.models.assessment import Assessment
@@ -24,6 +24,7 @@ __all__ = [
     "MonitoringCoverage",
     "Finding",
     "FindingEvidence",
+    "FindingReviewHistory",
     "PeerBaseline",
     "User",
     "UserCSE",

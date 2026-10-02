@@ -64,6 +64,31 @@ class FindingEvidenceResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class FindingReviewHistoryResponse(BaseModel):
+    id: uuid.UUID
+    finding_id: uuid.UUID
+    user_id: Optional[uuid.UUID] = None
+    username: Optional[str] = None
+    user_role: Optional[str] = None
+    cse_id: uuid.UUID
+    action_type: str
+    previous_status: Optional[str] = None
+    new_status: Optional[str] = None
+    note_text: Optional[str] = None
+    evidence_request_details: Optional[Dict[str, Any]] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ExaminerNoteCreate(BaseModel):
+    note_text: str = Field(..., min_length=1, max_length=2000)
+
+class EvidenceRequestCreate(BaseModel):
+    note_text: str = Field(..., min_length=1, max_length=2000)
+    required_data_types: List[str] = Field(..., min_length=1)
+    requested_time_window: Optional[str] = None
+    description: Optional[str] = None
+
 class ExplainabilitySchema(BaseModel):
     what: str
     why: str
@@ -74,7 +99,7 @@ class ExplainabilitySchema(BaseModel):
 
 class FindingStatusUpdateSchema(BaseModel):
     status: str
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=2000)
 
 class FindingItemSchema(BaseModel):
     id: uuid.UUID
@@ -96,7 +121,8 @@ class FindingItemSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class FindingDetailSchema(FindingItemSchema):
-    evidence: List[FindingEvidenceResponse]
+    evidence: List[FindingEvidenceResponse] = []
+    review_history: List[FindingReviewHistoryResponse] = []
 
 
 class PaginatedFindingsResponse(BaseModel):

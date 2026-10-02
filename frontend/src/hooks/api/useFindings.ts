@@ -1,6 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { listFindings, getFindingDetail, updateFindingStatus } from '../../api/findings';
-import type { FindingQueryParams, FindingStatusUpdatePayload } from '../../types/api/findings';
+import {
+  listFindings,
+  getFindingDetail,
+  updateFindingStatus,
+  getFindingHistory,
+  addExaminerNote,
+  requestEvidence
+} from '../../api/findings';
+import type {
+  FindingQueryParams,
+  FindingStatusUpdatePayload,
+  ExaminerNotePayload,
+  EvidenceRequestPayload
+} from '../../types/api/findings';
 import queryKeys from '../../utils/queryKeys';
 
 export function useFindingsQuery(params?: FindingQueryParams) {
@@ -18,10 +30,40 @@ export function useFindingQuery(findingId: string) {
   });
 }
 
+export function useFindingHistoryQuery(findingId: string) {
+  return useQuery({
+    queryKey: [...queryKeys.findings.detail(findingId), 'history'],
+    queryFn: () => getFindingHistory(findingId),
+    enabled: Boolean(findingId),
+  });
+}
+
 export function useUpdateFindingStatusMutation(findingId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: FindingStatusUpdatePayload) => updateFindingStatus(findingId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.findings.detail(findingId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.findings.all });
+    },
+  });
+}
+
+export function useAddExaminerNoteMutation(findingId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ExaminerNotePayload) => addExaminerNote(findingId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.findings.detail(findingId) });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.findings.detail(findingId), 'history'] });
+    },
+  });
+}
+
+export function useRequestEvidenceMutation(findingId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: EvidenceRequestPayload) => requestEvidence(findingId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.findings.detail(findingId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.findings.all });

@@ -16,6 +16,32 @@ export interface FindingEvidenceResponse {
   created_at: string;
 }
 
+export interface FindingReviewHistoryResponse {
+  id: string;
+  finding_id: string;
+  user_id?: string | null;
+  username?: string | null;
+  user_role?: string | null;
+  cse_id: string;
+  action_type: string;
+  previous_status?: string | null;
+  new_status?: string | null;
+  note_text?: string | null;
+  evidence_request_details?: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface ExaminerNotePayload {
+  note_text: string;
+}
+
+export interface EvidenceRequestPayload {
+  note_text: string;
+  required_data_types: string[];
+  requested_time_window?: string;
+  description?: string;
+}
+
 export interface ExplainabilitySchema {
   what: string;
   why: string;
@@ -50,6 +76,7 @@ export interface FindingItemSchema {
 
 export interface FindingDetailSchema extends FindingItemSchema {
   evidence: FindingEvidenceResponse[];
+  review_history?: FindingReviewHistoryResponse[];
 }
 
 export interface PaginatedFindingsResponse {
