@@ -4,6 +4,8 @@ from datetime import datetime, timezone, timedelta
 from fastapi.testclient import TestClient
 from app.main import app
 
+from app.models.baseline import PeerBaseline
+
 client = TestClient(app)
 
 def test_get_benchmarks_invalid_cse():
@@ -13,8 +15,11 @@ def test_get_benchmarks_invalid_cse():
     assert res.status_code == 404
     assert res.json()["error"]["code"] == "ENTITY_NOT_FOUND"
 
-def test_get_benchmarks_no_baselines():
+def test_get_benchmarks_no_baselines(db_session):
     """Verify GET /api/v1/benchmarks/{cse_id} returns NO_APPLICABLE_BASELINE when zero baselines exist."""
+    db_session.query(PeerBaseline).delete()
+    db_session.commit()
+
     unique_code = f"CSE_BM_{uuid.uuid4().hex[:8]}"
     cse_res = client.post("/api/v1/cses/", json={
         "cse_code": unique_code,

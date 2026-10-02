@@ -74,19 +74,20 @@ class BenchmarkAnalyzer:
 
             cse_investigation_rates[c.id] = investigated_count / len(c_alerts)
 
-        if len(cse_investigation_rates) >= analytics_settings.MIN_PEER_GROUP_SIZE and cse_id in cse_investigation_rates:
-            rates_list = list(cse_investigation_rates.values())
-            mean_rate = float(statistics.mean(rates_list))
-            std_rate = float(statistics.stdev(rates_list)) if len(rates_list) > 1 else 0.0
+        peer_investigation_rates = [v for cid, v in cse_investigation_rates.items() if cid != cse_id]
+        if len(peer_investigation_rates) >= analytics_settings.MIN_PEER_GROUP_SIZE and cse_id in cse_investigation_rates:
+            peer_rates_list = peer_investigation_rates
+            mean_rate = float(statistics.mean(peer_rates_list))
+            std_rate = float(statistics.stdev(peer_rates_list)) if len(peer_rates_list) > 1 else 0.0
 
             pb1 = PeerBaseline(
                 id=uuid.uuid4(),
                 peer_group=peer_group_name,
                 metric_name="alert_investigation_rate",
                 baseline_value=mean_rate,
-                min_value=float(min(rates_list)),
-                max_value=float(max(rates_list)),
-                sample_size=len(rates_list),
+                min_value=float(min(peer_investigation_rates)),
+                max_value=float(max(peer_investigation_rates)),
+                sample_size=len(peer_investigation_rates),
                 period_start=p_start,
                 period_end=p_end,
                 metadata_json={"std_dev": std_rate}
@@ -101,7 +102,7 @@ class BenchmarkAnalyzer:
                     finding_code = f"FND-BM01-INV-{cse_id.hex[:6]}-{date_tag}"
                     existing = db.query(Finding).filter(Finding.finding_code == finding_code).first()
                     if not existing:
-                        ev_strength = calculate_evidence_strength(sample_size=len(rates_list), has_explicit_evidence=True)
+                        ev_strength = calculate_evidence_strength(sample_size=len(peer_investigation_rates), has_explicit_evidence=True)
                         finding = Finding(
                             id=uuid.uuid4(),
                             finding_code=finding_code,
@@ -130,7 +131,7 @@ class BenchmarkAnalyzer:
                                 "peer_std": round(std_rate, 4),
                                 "deviation": round(z_score, 4),
                                 "z_score": round(z_score, 4),
-                                "peer_sample_size": len(rates_list),
+                                "peer_sample_size": len(peer_investigation_rates),
                                 "evidence_strength": ev_strength,
                                 "capability": capability,
                                 "supervisory_relevance": "Deviating from peer investigation rates indicates potential operational under-reporting or over-filtering."
@@ -160,19 +161,20 @@ class BenchmarkAnalyzer:
 
             cse_critical_rates[c.id] = escalated_count / len(c_crits)
 
-        if len(cse_critical_rates) >= analytics_settings.MIN_PEER_GROUP_SIZE and cse_id in cse_critical_rates:
-            crit_list = list(cse_critical_rates.values())
-            mean_crit = float(statistics.mean(crit_list))
-            std_crit = float(statistics.stdev(crit_list)) if len(crit_list) > 1 else 0.0
+        peer_critical_rates = [v for cid, v in cse_critical_rates.items() if cid != cse_id]
+        if len(peer_critical_rates) >= analytics_settings.MIN_PEER_GROUP_SIZE and cse_id in cse_critical_rates:
+            peer_crit_list = peer_critical_rates
+            mean_crit = float(statistics.mean(peer_crit_list))
+            std_crit = float(statistics.stdev(peer_crit_list)) if len(peer_crit_list) > 1 else 0.0
 
             pb2 = PeerBaseline(
                 id=uuid.uuid4(),
                 peer_group=peer_group_name,
                 metric_name="critical_escalation_rate",
                 baseline_value=mean_crit,
-                min_value=float(min(crit_list)),
-                max_value=float(max(crit_list)),
-                sample_size=len(crit_list),
+                min_value=float(min(peer_critical_rates)),
+                max_value=float(max(peer_critical_rates)),
+                sample_size=len(peer_critical_rates),
                 period_start=p_start,
                 period_end=p_end,
                 metadata_json={"std_dev": std_crit}
@@ -187,7 +189,7 @@ class BenchmarkAnalyzer:
                     finding_code = f"FND-BM01-ESC-{cse_id.hex[:6]}-{date_tag}"
                     existing = db.query(Finding).filter(Finding.finding_code == finding_code).first()
                     if not existing:
-                        ev_strength = calculate_evidence_strength(sample_size=len(crit_list), has_explicit_evidence=True)
+                        ev_strength = calculate_evidence_strength(sample_size=len(peer_critical_rates), has_explicit_evidence=True)
                         finding = Finding(
                             id=uuid.uuid4(),
                             finding_code=finding_code,
@@ -216,7 +218,7 @@ class BenchmarkAnalyzer:
                                 "peer_std": round(std_crit, 4),
                                 "deviation": round(z_score_crit, 4),
                                 "z_score": round(z_score_crit, 4),
-                                "peer_sample_size": len(crit_list),
+                                "peer_sample_size": len(peer_critical_rates),
                                 "evidence_strength": ev_strength,
                                 "capability": capability,
                                 "supervisory_relevance": "Low critical escalation rate compared to sector peers signals potential escalation suppression."

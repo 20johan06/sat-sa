@@ -15,7 +15,8 @@ from app.api.v1.endpoints import (
     supervisory,
     manual_review,
     capability,
-    trends
+    trends,
+    validation
 )
 from app.api.v1 import ingestion
 
@@ -40,9 +41,11 @@ api_router.include_router(supervisory.router)
 api_router.include_router(manual_review.router)
 api_router.include_router(capability.router)
 api_router.include_router(trends.router)
+api_router.include_router(validation.router)
 
 # Phase 3 V2 Assessment & Dataset Foundation endpoints
 api_router.include_router(assessments.router)
 api_router.include_router(dataset_versions.router)
 api_router.include_router(analysis_runs.router)
+
 
