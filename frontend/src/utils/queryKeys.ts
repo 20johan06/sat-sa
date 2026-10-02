@@ -52,6 +52,11 @@ export const queryKeys = {
     assessment: (cseId: string) => ['capability', 'assessment', cseId] as const,
     detail: (cseId: string, capName: string) => ['capability', 'detail', cseId, capName] as const,
   },
+  trends: {
+    all: ['trends'] as const,
+    cse: (cseId: string, params?: { obs_start?: string; obs_end?: string; window_days?: number }) =>
+      ['trends', 'cse', cseId, params || {}] as const,
+  },
 };
 
 export default queryKeys;

@@ -16,6 +16,7 @@ import ExecutiveReportsPage from '../pages/ExecutiveReportsPage';
 import IngestionAuditPage from '../pages/IngestionAuditPage';
 import AssessmentWorkspacePage from '../pages/AssessmentWorkspacePage';
 import { CSECapabilityAssessmentPage } from '../pages/CSECapabilityAssessmentPage';
+import { CSETrendsPage } from '../pages/CSETrendsPage';
 import SystemHealthPage from '../pages/SystemHealthPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
@@ -43,6 +44,7 @@ export const AppRoutes: React.FC = () => {
         {/* Nested Entity Context Routes (/cses/:cse_id/*) */}
         <Route path="cses/:cse_id" element={<CSEContextLayout />}>
           <Route index element={<CSEOverviewPage />} />
+          <Route path="trends" element={<CSETrendsPage />} />
           <Route path="assessments" element={<AssessmentWorkspacePage />} />
           <Route path="capability-assessment" element={<CSECapabilityAssessmentPage />} />
           <Route

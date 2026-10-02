@@ -9,6 +9,7 @@ import {
   UploadCloud,
   Building2,
   FolderKanban,
+  TrendingUp,
 } from 'lucide-react';
 import PageContainer from '../components/layout/PageContainer';
 import Badge from '../components/ui/Badge';
@@ -23,6 +24,7 @@ export const CSEContextLayout: React.FC = () => {
 
   const secondaryNavTabs = [
     { label: 'Overview', path: `/cses/${activeCseId}`, end: true, icon: <LayoutDashboard className="w-4 h-4" /> },
+    { label: 'Historical Trends', path: `/cses/${activeCseId}/trends`, end: false, icon: <TrendingUp className="w-4 h-4" /> },
     { label: 'Capability Assessment', path: `/cses/${activeCseId}/capability-assessment`, end: false, icon: <Activity className="w-4 h-4" /> },
     { label: 'Assessments Workspace', path: `/cses/${activeCseId}/assessments`, end: false, icon: <FolderKanban className="w-4 h-4" /> },
     { label: 'Analytics Console', path: `/cses/${activeCseId}/analytics`, end: false, icon: <Activity className="w-4 h-4" /> },
