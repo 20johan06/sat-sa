@@ -12,6 +12,7 @@ from app.models.user import User, UserCSE, AuditLog
 from app.models.assessment import Assessment
 from app.models.dataset_version import DatasetVersion
 from app.models.analysis_run import AnalysisRun
+from app.models.report import ReportRecord
 
 __all__ = [
     "CSE",
@@ -32,4 +33,6 @@ __all__ = [
     "Assessment",
     "DatasetVersion",
     "AnalysisRun",
+    "ReportRecord",
 ]
+
