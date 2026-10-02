@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sat-sa-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER?Error: POSTGRES_USER must be set in environment}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD?Error: POSTGRES_PASSWORD must be set in environment}"
+      POSTGRES_DB: "${POSTGRES_DB?Error: POSTGRES_DB must be set in environment}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sat-sa-internal
+
+  backend:
+    image: sat-sa-backend:v1.0.0-c59d5fa
+    container_name: sat-sa-backend
+    restart: always
+    environment:
+      DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+      SECRET_KEY: "${SECRET_KEY?Error: SECRET_KEY must be set in environment}"
+      ENVIRONMENT: production
+    volumes:
+      - storage_data:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sat-sa-internal
+
+  frontend:
+    image: sat-sa-frontend:v1.0.0-c59d5fa
+    container_name: sat-sa-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - sat-sa-internal
+
+volumes:
+  postgres_data:
+    name: sat-sa-postgres-data
+  storage_data:
+    name: sat-sa-storage-data
+
+networks:
+  sat-sa-internal:
+    driver: bridge
+    internal: true
