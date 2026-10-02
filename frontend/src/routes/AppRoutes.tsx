@@ -15,6 +15,7 @@ import PeerBenchmarksPage from '../pages/PeerBenchmarksPage';
 import ExecutiveReportsPage from '../pages/ExecutiveReportsPage';
 import IngestionAuditPage from '../pages/IngestionAuditPage';
 import AssessmentWorkspacePage from '../pages/AssessmentWorkspacePage';
+import { CSECapabilityAssessmentPage } from '../pages/CSECapabilityAssessmentPage';
 import SystemHealthPage from '../pages/SystemHealthPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
@@ -43,6 +44,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="cses/:cse_id" element={<CSEContextLayout />}>
           <Route index element={<CSEOverviewPage />} />
           <Route path="assessments" element={<AssessmentWorkspacePage />} />
+          <Route path="capability-assessment" element={<CSECapabilityAssessmentPage />} />
           <Route
             path="analytics"
             element={

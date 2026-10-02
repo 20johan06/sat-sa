@@ -47,6 +47,11 @@ export const queryKeys = {
     list: (cseId: string) => ['assessments', 'list', cseId] as const,
     detail: (id: string) => ['assessments', 'detail', id] as const,
   },
+  capability: {
+    all: ['capability'] as const,
+    assessment: (cseId: string) => ['capability', 'assessment', cseId] as const,
+    detail: (cseId: string, capName: string) => ['capability', 'detail', cseId, capName] as const,
+  },
 };
 
 export default queryKeys;
