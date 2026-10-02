@@ -12,7 +12,8 @@ from app.api.v1.endpoints import (
     assessments,
     dataset_versions,
     analysis_runs,
-    supervisory
+    supervisory,
+    manual_review
 )
 from app.api.v1 import ingestion
 
@@ -34,9 +35,9 @@ api_router.include_router(findings.router)
 api_router.include_router(benchmarks.router)
 api_router.include_router(reports.router)
 api_router.include_router(supervisory.router)
+api_router.include_router(manual_review.router)
 
 # Phase 3 V2 Assessment & Dataset Foundation endpoints
 api_router.include_router(assessments.router)
 api_router.include_router(dataset_versions.router)
 api_router.include_router(analysis_runs.router)
-
