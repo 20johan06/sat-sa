@@ -18,6 +18,7 @@ import AssessmentWorkspacePage from '../pages/AssessmentWorkspacePage';
 import { CSECapabilityAssessmentPage } from '../pages/CSECapabilityAssessmentPage';
 import { CSETrendsPage } from '../pages/CSETrendsPage';
 import SystemHealthPage from '../pages/SystemHealthPage';
+import ValidationPage from '../pages/ValidationPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
 export const AppRoutes: React.FC = () => {
@@ -40,6 +41,14 @@ export const AppRoutes: React.FC = () => {
         <Route path="findings" element={<NationalFindingsPage />} />
         <Route path="findings/:finding_id" element={<FindingDetailPage />} />
         <Route path="system/health" element={<SystemHealthPage />} />
+        <Route
+          path="validation"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'SUPERVISOR']}>
+              <ValidationPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Nested Entity Context Routes (/cses/:cse_id/*) */}
         <Route path="cses/:cse_id" element={<CSEContextLayout />}>

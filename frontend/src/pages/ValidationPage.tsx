@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useValidationResults, useGenerateSyntheticData, useRunValidation } from '../hooks/api/useValidation';
+import { SyntheticNoticeBanner } from '../components/supervisory/SyntheticNoticeBanner';
 import type { ScenarioResultItem, RuleConfusionMatrix } from '../types/api/validation';
 
 export const ValidationPage: React.FC = () => {
@@ -71,6 +72,9 @@ export const ValidationPage: React.FC = () => {
         </div>
       ) : (
         <>
+          {/* Synthetic Validation Environment Disclaimer Banner */}
+          <SyntheticNoticeBanner className="mb-2" />
+
           {/* Executive Metrics Overview Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg">
@@ -208,3 +212,5 @@ export const ValidationPage: React.FC = () => {
     </div>
   );
 };
+
+export default ValidationPage;

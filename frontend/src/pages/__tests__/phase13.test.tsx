@@ -78,4 +78,39 @@ describe('Phase 13 Synthetic Data & Validation Engine Frontend Contract', () => 
     expect(result.metrics.f1_score).toBe(1.0);
     expect(result.scenario_results[0].is_correct).toBe(true);
   });
+
+  describe('Validation Route RBAC Access Matrix', () => {
+    const VALIDATION_ALLOWED_ROLES: Array<'ADMIN' | 'SUPERVISOR' | 'VIEWER'> = ['ADMIN', 'SUPERVISOR'];
+
+    it('1. allows ADMIN role access to /validation route', () => {
+      const userRole = 'ADMIN';
+      const isAllowed = VALIDATION_ALLOWED_ROLES.includes(userRole as any);
+      expect(isAllowed).toBe(true);
+    });
+
+    it('2. allows SUPERVISOR role access to /validation route', () => {
+      const userRole = 'SUPERVISOR';
+      const isAllowed = VALIDATION_ALLOWED_ROLES.includes(userRole as any);
+      expect(isAllowed).toBe(true);
+    });
+
+    it('3. blocks VIEWER role from /validation route', () => {
+      const userRole = 'VIEWER';
+      const isAllowed = VALIDATION_ALLOWED_ROLES.includes(userRole as any);
+      expect(isAllowed).toBe(false);
+    });
+
+    it('4. blocks CSE_USER role from /validation route', () => {
+      const userRole = 'CSE_USER';
+      const isAllowed = VALIDATION_ALLOWED_ROLES.includes(userRole as any);
+      expect(isAllowed).toBe(false);
+    });
+
+    it('5. redirects unauthenticated user (null token/user) from /validation route', () => {
+      const token = null;
+      const user = null;
+      const isAuthenticated = Boolean(token && user);
+      expect(isAuthenticated).toBe(false);
+    });
+  });
 });

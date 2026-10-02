@@ -28,8 +28,8 @@ export const AppShell: React.FC = () => {
 
   if (hasRole('ADMIN', 'SUPERVISOR')) {
     primaryNavItems.push({
-      label: 'Security Audit Logs',
-      path: '/audit/logs',
+      label: 'Validation Engine',
+      path: '/validation',
       icon: <FileCheck2 className="w-4 h-4" />
     });
   }
