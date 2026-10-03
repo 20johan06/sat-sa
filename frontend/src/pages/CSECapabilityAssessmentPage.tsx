@@ -8,8 +8,9 @@ import type {
 } from '../types/api/capability';
 
 export const CSECapabilityAssessmentPage: React.FC = () => {
-  const { cseId } = useParams<{ cseId: string }>();
-  const { data: assessment, isLoading, error } = useCapabilityAssessment(cseId || '');
+  const { cse_id } = useParams<{ cse_id: string }>();
+  const activeCseId = cse_id || '';
+  const { data: assessment, isLoading, error } = useCapabilityAssessment(activeCseId);
   const [selectedExplainability, setSelectedExplainability] = useState<CapabilityAssessmentItem | null>(null);
 
   if (isLoading) {

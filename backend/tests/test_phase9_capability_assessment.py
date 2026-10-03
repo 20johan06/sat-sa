@@ -286,3 +286,18 @@ def test_zero_database_mutation(db_session, phase9_test_data):
 
     findings_after = db_session.query(Finding).count()
     assert findings_before == findings_after, "Capability Assessment GET call must not mutate DB"
+
+def test_capability_authentication_security(db_session, phase9_test_data):
+    """Verifies missing authentication returns 401 and invalid token returns 401."""
+    cse_id = phase9_test_data["cse_a"].id
+
+    # 1. Missing Authorization header -> 401
+    res_no_auth = client.get(f"/api/v1/supervisory/cse/{cse_id}/capability-assessment")
+    assert res_no_auth.status_code == 401
+
+    # 2. Invalid Bearer token -> 401
+    res_bad_token = client.get(
+        f"/api/v1/supervisory/cse/{cse_id}/capability-assessment",
+        headers={"Authorization": "Bearer invalid_token_xyz"}
+    )
+    assert res_bad_token.status_code == 401
