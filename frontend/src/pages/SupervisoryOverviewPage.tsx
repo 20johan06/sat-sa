@@ -144,7 +144,7 @@ export const SupervisoryOverviewPage: React.FC = () => {
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 mt-2">Procedural & Role Clearances</h3>
                 <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                  Identifies unverified role grants, excessive privilege assignments, segregation of duties breaches, and rapid case closures.
+                  Identifies uninvestigated alerts (EG-01), unescalated critical alerts (EG-02), rapid case closures (EG-03), and repeated investigation patterns (EG-04).
                 </p>
               </div>
               <div className="mt-4 pt-3 border-t border-amber-500/20 flex items-center justify-between">
@@ -169,7 +169,7 @@ export const SupervisoryOverviewPage: React.FC = () => {
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 mt-2">Coverage & Telemetry Gaps</h3>
                 <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                  Detects missing mandatory logs, silent monitoring outages, dormant account activations, and dark log periods across entities.
+                  Identifies critical-asset monitoring gaps (NS-01) and evaluates configured telemetry-coverage expectations (NS-02).
                 </p>
               </div>
               <div className="mt-4 pt-3 border-t border-purple-500/20 flex items-center justify-between">
@@ -194,7 +194,7 @@ export const SupervisoryOverviewPage: React.FC = () => {
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 mt-2">Statistical Deviations</h3>
                 <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                  Identifies off-hours admin logins, failed authentication spikes, and statistical volume anomalies using robust MAD statistics.
+                  Identifies daily alert-volume anomalies (AN-01) using robust MAD-based statistical analysis.
                 </p>
               </div>
               <div className="mt-4 pt-3 border-t border-red-500/20 flex items-center justify-between">
