@@ -265,9 +265,21 @@ class ReportingService:
 
         findings_list = query.order_by(desc(Finding.detected_at), desc(Finding.id)).offset(offset).limit(page_size).all()
 
+        finding_ids = [f.id for f in findings_list]
+        ev_count_map = {}
+        if finding_ids:
+            ev_rows = (
+                db.query(Finding.id, func.count(FindingEvidence.id))
+                .outerjoin(FindingEvidence, FindingEvidence.finding_id == Finding.id)
+                .filter(Finding.id.in_(finding_ids))
+                .group_by(Finding.id)
+                .all()
+            )
+            ev_count_map = {fid: count for fid, count in ev_rows}
+
         items = []
         for f in findings_list:
-            ev_count = db.query(FindingEvidence).filter(FindingEvidence.finding_id == f.id).count()
+            ev_count = ev_count_map.get(f.id, 0)
             explainability = ReportingService.build_explainability(f, ev_count)
             item = FindingItemSchema(
                 id=f.id,
