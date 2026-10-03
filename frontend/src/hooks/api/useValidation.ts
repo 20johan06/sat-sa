@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { validationApi } from '../../api/validation';
-import type { ValidationGenerateRequest, ValidationRunRequest } from '../../types/api/validation';
+import type { ValidationGenerateRequest, ValidationRunRequest, ValidationRunResult } from '../../types/api/validation';
 
 export const VALIDATION_QUERY_KEYS = {
   all: ['validation'] as const,
@@ -28,7 +28,9 @@ export const useRunValidation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: ValidationRunRequest) => validationApi.runValidation(data),
-    onSuccess: () => {
+    onSuccess: (data: ValidationRunResult, variables: ValidationRunRequest) => {
+      const kVal = variables.k_value || 5;
+      queryClient.setQueryData(VALIDATION_QUERY_KEYS.results(kVal), data);
       queryClient.invalidateQueries({ queryKey: VALIDATION_QUERY_KEYS.all });
     },
   });

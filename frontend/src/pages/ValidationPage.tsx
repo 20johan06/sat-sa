@@ -10,7 +10,7 @@ export const ValidationPage: React.FC = () => {
 
   const isSupervisorOrAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
 
-  const { data: valData, isLoading } = useValidationResults(kValue);
+  const { data: valData, isLoading, isError, error, refetch, isFetching } = useValidationResults(kValue);
   const generateMutation = useGenerateSyntheticData();
   const runMutation = useRunValidation();
 
@@ -29,6 +29,14 @@ export const ValidationPage: React.FC = () => {
       console.error('Failed to run validation pipeline:', err);
     }
   };
+
+  const isExecuting = generateMutation.isPending || runMutation.isPending;
+  const hasError = isError || generateMutation.isError || runMutation.isError;
+  const errorMessage =
+    (error as any)?.message ||
+    (runMutation.error as any)?.message ||
+    (generateMutation.error as any)?.message ||
+    'Validation execution failed.';
 
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto">
@@ -50,14 +58,14 @@ export const ValidationPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={handleGenerate}
-              disabled={generateMutation.isPending}
+              disabled={isExecuting}
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg transition border border-slate-700 disabled:opacity-50"
             >
               {generateMutation.isPending ? 'Seeding Data...' : 'Seed Synthetic Scenarios'}
             </button>
             <button
               onClick={handleRunValidation}
-              disabled={runMutation.isPending}
+              disabled={isExecuting}
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition shadow-lg disabled:opacity-50"
             >
               {runMutation.isPending ? 'Executing Analytics...' : 'Run Validation Pipeline'}
@@ -66,17 +74,57 @@ export const ValidationPage: React.FC = () => {
         )}
       </div>
 
-      {isLoading || !valData ? (
+      {/* State Transitions & Execution Handlers */}
+      {generateMutation.isPending ? (
+        <div className="text-slate-300 text-sm py-16 text-center bg-slate-900 rounded-xl border border-slate-800 space-y-4 shadow-xl">
+          <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div>
+            <p className="font-bold text-base text-white font-mono">GENERATING SYNTHETIC DATA...</p>
+            <p className="text-xs text-slate-400 mt-1">Seeding deterministic synthetic scenarios (SYN-CSE-01 to SYN-CSE-08)...</p>
+          </div>
+        </div>
+      ) : runMutation.isPending ? (
         <div className="text-slate-300 text-sm py-16 text-center bg-slate-900 rounded-xl border border-slate-800 space-y-4 shadow-xl">
           <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
           <div>
-            <p className="font-bold text-base text-white font-mono">Running controlled synthetic validation...</p>
-            <p className="text-xs text-slate-400 mt-1">Evaluating canonical supervisory rules across synthetic scenarios...</p>
-            <p className="text-[11px] text-slate-500 font-mono mt-0.5">Results will appear when validation engine completes calculation.</p>
+            <p className="font-bold text-base text-white font-mono">EXECUTING ANALYTICS & CALCULATING METRICS...</p>
+            <p className="text-xs text-slate-400 mt-1">Evaluating 8 canonical supervisory rules across synthetic scenarios...</p>
           </div>
         </div>
-      ) : (
+      ) : hasError && !valData ? (
+        <div className="text-slate-300 text-sm py-12 text-center bg-slate-900 rounded-xl border border-rose-800/60 space-y-4 shadow-xl p-6">
+          <div className="inline-flex p-3 rounded-full bg-rose-950/60 text-rose-400 border border-rose-800">
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="font-bold text-lg text-rose-300">VALIDATION FAILED</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">{errorMessage}</p>
+          </div>
+          <button
+            onClick={() => { refetch(); handleRunValidation(); }}
+            className="px-4 py-2 bg-rose-900/40 hover:bg-rose-900/60 text-rose-200 border border-rose-700/50 rounded-lg text-xs font-semibold transition"
+          >
+            Retry Validation Engine
+          </button>
+        </div>
+      ) : (isLoading || isFetching) && !valData ? (
+        <div className="text-slate-300 text-sm py-16 text-center bg-slate-900 rounded-xl border border-slate-800 space-y-4 shadow-xl">
+          <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div>
+            <p className="font-bold text-base text-white font-mono">RUNNING CONTROLLED SYNTHETIC VALIDATION...</p>
+            <p className="text-xs text-slate-400 mt-1">Evaluating canonical supervisory rules across synthetic scenarios...</p>
+          </div>
+        </div>
+      ) : valData ? (
         <>
+          {hasError && (
+            <div className="p-4 bg-rose-950/40 border border-rose-800 text-rose-300 rounded-lg text-xs flex items-center justify-between">
+              <span>Execution warning: {errorMessage}</span>
+              <button onClick={() => refetch()} className="underline font-semibold ml-4">Retry</button>
+            </div>
+          )}
           {/* Synthetic Validation Environment Disclaimer Banner */}
           <SyntheticNoticeBanner className="mb-2" />
 
@@ -213,7 +261,7 @@ export const ValidationPage: React.FC = () => {
             </div>
           </div>
         </>
-      )}
+      ) : null}
     </div>
   );
 };
