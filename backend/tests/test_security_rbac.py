@@ -197,3 +197,84 @@ def test_audit_logs_retrieval(db_session):
     logs = res.json()
     assert isinstance(logs, list)
     assert len(logs) > 0
+
+def test_phase16_authentication_security_requirements(db_session, test_cses):
+    """
+    Phase 16 Security Requirements Verification:
+    1. Missing Authorization Bearer header -> 401 Unauthorized
+    2. Invalid Bearer token -> 401 Unauthorized
+    3. Valid ADMIN token -> authenticated (200 OK)
+    4. Valid SUPERVISOR token -> authenticated (200 OK)
+    5. Valid VIEWER token -> authenticated (200 OK)
+    6. Unauthorized CSE access -> 403 Forbidden
+    """
+    cse1, cse2 = test_cses
+
+    # 1. Missing Authorization -> 401
+    res_no_auth = client.get(f"/api/v1/cses/{cse1.id}")
+    assert res_no_auth.status_code == 401
+    assert res_no_auth.json()["error"]["code"] == "AUTHENTICATION_REQUIRED"
+
+    # 2. Invalid Bearer token -> 401
+    res_bad_auth = client.get(
+        f"/api/v1/cses/{cse1.id}",
+        headers={"Authorization": "Bearer invalid_garbage_token_string"}
+    )
+    assert res_bad_auth.status_code == 401
+
+    # Create users with ADMIN, SUPERVISOR, and VIEWER roles
+    admin = AuthService.ensure_initial_admin(db_session)
+    admin_token = create_access_token({"sub": str(admin.id), "role": "ADMIN"})
+
+    sup = AuthService.create_user(
+        db=db_session,
+        req=UserCreateRequest(
+            username=f"sup_p16_{uuid.uuid4().hex[:6]}",
+            email=f"sup_p16_{uuid.uuid4().hex[:6]}@example.com",
+            password="Password123!",
+            role="SUPERVISOR",
+            allowed_cse_ids=[cse1.id]
+        )
+    )
+    sup_token = create_access_token({"sub": str(sup.id), "role": "SUPERVISOR"})
+
+    viewer = AuthService.create_user(
+        db=db_session,
+        req=UserCreateRequest(
+            username=f"view_p16_{uuid.uuid4().hex[:6]}",
+            email=f"view_p16_{uuid.uuid4().hex[:6]}@example.com",
+            password="Password123!",
+            role="VIEWER",
+            allowed_cse_ids=[cse1.id]
+        )
+    )
+    viewer_token = create_access_token({"sub": str(viewer.id), "role": "VIEWER"})
+
+    # 3. Valid ADMIN token -> authenticated (200)
+    res_admin = client.get(
+        f"/api/v1/cses/{cse1.id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert res_admin.status_code == 200
+
+    # 4. Valid SUPERVISOR token -> authenticated (200)
+    res_sup = client.get(
+        f"/api/v1/cses/{cse1.id}",
+        headers={"Authorization": f"Bearer {sup_token}"}
+    )
+    assert res_sup.status_code == 200
+
+    # 5. Valid VIEWER token -> authenticated (200)
+    res_viewer = client.get(
+        f"/api/v1/cses/{cse1.id}",
+        headers={"Authorization": f"Bearer {viewer_token}"}
+    )
+    assert res_viewer.status_code == 200
+
+    # 6. Unauthorized CSE access -> 403
+    res_unauth_cse = client.get(
+        f"/api/v1/cses/{cse2.id}",
+        headers={"Authorization": f"Bearer {sup_token}"}
+    )
+    assert res_unauth_cse.status_code == 403
+    assert res_unauth_cse.json()["error"]["code"] == "UNAUTHORIZED_CSE_ACCESS"

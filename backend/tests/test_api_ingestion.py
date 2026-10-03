@@ -10,6 +10,14 @@ from app.models.ingestion import IngestionBatch
 client = TestClient(app)
 
 @pytest.fixture
+def auth_headers(db_session):
+    from app.services.auth_service import AuthService
+    from app.utils.security import create_access_token
+    admin = AuthService.ensure_initial_admin(db_session)
+    token = create_access_token({"sub": str(admin.id), "role": "ADMIN"})
+    return {"Authorization": f"Bearer {token}"}
+
+@pytest.fixture
 def test_cse(db_session):
     cse = CSE(
         id=uuid.uuid4(),
@@ -24,7 +32,7 @@ def test_cse(db_session):
     return cse
 
 
-def test_upload_csv_alerts_success(test_cse, db_session):
+def test_upload_csv_alerts_success(test_cse, db_session, auth_headers):
     csv_content = (
         "external_alert_id,title,category,severity,status,detected_at\n"
         "ALT-2001,Unusual Outbound Traffic,NETWORK,HIGH,OPEN,2026-09-28T14:00:00Z\n"
@@ -33,6 +41,7 @@ def test_upload_csv_alerts_success(test_cse, db_session):
     
     response = client.post(
         "/api/v1/ingestion/upload",
+        headers=auth_headers,
         data={
             "cse_id": str(test_cse.id),
             "dataset_type": "alerts"
@@ -60,7 +69,7 @@ def test_upload_csv_alerts_success(test_cse, db_session):
     assert persisted_alerts[0].cse_id == test_cse.id
 
 
-def test_upload_json_cases_success(test_cse, db_session):
+def test_upload_json_cases_success(test_cse, db_session, auth_headers):
     json_payload = {
         "cse_id": str(test_cse.id),
         "dataset_type": "cases",
@@ -77,6 +86,7 @@ def test_upload_json_cases_success(test_cse, db_session):
 
     response = client.post(
         "/api/v1/ingestion/json",
+        headers=auth_headers,
         json=json_payload
     )
 
@@ -92,7 +102,7 @@ def test_upload_json_cases_success(test_cse, db_session):
     assert persisted_cases[0].external_case_id == "CASE-9001"
 
 
-def test_ingestion_transactional_rollback_on_invalid_schema(test_cse, db_session):
+def test_ingestion_transactional_rollback_on_invalid_schema(test_cse, db_session, auth_headers):
     """Verify that batch is marked FAILED and operational tables have zero orphaned records on validation failure."""
     invalid_csv = (
         "external_alert_id,title,category,severity,status,detected_at\n"
@@ -102,6 +112,7 @@ def test_ingestion_transactional_rollback_on_invalid_schema(test_cse, db_session
 
     response = client.post(
         "/api/v1/ingestion/upload",
+        headers=auth_headers,
         data={
             "cse_id": str(test_cse.id),
             "dataset_type": "alerts"
@@ -128,7 +139,7 @@ def test_ingestion_transactional_rollback_on_invalid_schema(test_cse, db_session
     assert len(alerts_in_db) == 0  # Atomic Rollback verified
 
 
-def test_list_and_get_ingestion_batches(test_cse, db_session):
+def test_list_and_get_ingestion_batches(test_cse, db_session, auth_headers):
     # Perform an ingestion first
     csv_content = (
         "external_alert_id,title,category,severity,status,detected_at\n"
@@ -136,6 +147,7 @@ def test_list_and_get_ingestion_batches(test_cse, db_session):
     )
     upload_res = client.post(
         "/api/v1/ingestion/upload",
+        headers=auth_headers,
         data={"cse_id": str(test_cse.id), "dataset_type": "alerts"},
         files={"file": ("list_test.csv", csv_content.encode("utf-8"), "text/csv")}
     )
@@ -143,23 +155,24 @@ def test_list_and_get_ingestion_batches(test_cse, db_session):
     batch_id = batch_data["id"]
 
     # Test GET /api/v1/ingestion/batches
-    list_res = client.get(f"/api/v1/ingestion/batches?cse_id={test_cse.id}")
+    list_res = client.get(f"/api/v1/ingestion/batches?cse_id={test_cse.id}", headers=auth_headers)
     assert list_res.status_code == 200
     list_data = list_res.json()
     assert list_data["total"] >= 1
     assert any(b["id"] == batch_id for b in list_data["items"])
 
     # Test GET /api/v1/ingestion/batches/{batch_id}
-    detail_res = client.get(f"/api/v1/ingestion/batches/{batch_id}")
+    detail_res = client.get(f"/api/v1/ingestion/batches/{batch_id}", headers=auth_headers)
     assert detail_res.status_code == 200
     assert detail_res.json()["id"] == batch_id
 
 
-def test_ingestion_nonexistent_cse():
+def test_ingestion_nonexistent_cse(auth_headers):
     fake_uuid = str(uuid.uuid4())
     csv_content = "external_alert_id,title,category,severity,status,detected_at\n"
     response = client.post(
         "/api/v1/ingestion/upload",
+        headers=auth_headers,
         data={"cse_id": fake_uuid, "dataset_type": "alerts"},
         files={"file": ("test.csv", csv_content.encode("utf-8"), "text/csv")}
     )

@@ -21,7 +21,11 @@ def get_current_user(
     and returns the authenticated active user.
     """
     if not credentials or not credentials.credentials:
-        return AuthService.ensure_initial_admin(db)
+        raise SATSAException(
+            message="Authentication credentials were not provided.",
+            code="AUTHENTICATION_REQUIRED",
+            status_code=401
+        )
 
     token = credentials.credentials
     payload = decode_access_token(token)
