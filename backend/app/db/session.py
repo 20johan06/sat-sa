@@ -7,8 +7,8 @@ from app.utils.logger import logger
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
+    pool_size=settings.DB_POOL_SIZE,
+    max_overflow=settings.DB_MAX_OVERFLOW,
     connect_args={"connect_timeout": 3},
     echo=False
 )

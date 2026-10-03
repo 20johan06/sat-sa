@@ -27,6 +27,10 @@ services:
       DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
       SECRET_KEY: "${SECRET_KEY?Error: SECRET_KEY must be set in environment}"
       ENVIRONMENT: production
+      DB_POOL_SIZE: "${DB_POOL_SIZE:-14}"
+      DB_MAX_OVERFLOW: "${DB_MAX_OVERFLOW:-6}"
+      UVICORN_WORKERS: "${UVICORN_WORKERS:-4}"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "${UVICORN_WORKERS:-4}"]
     volumes:
       - storage_data:/app/storage
     depends_on:

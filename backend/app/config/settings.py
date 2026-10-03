@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
     DATABASE_URL: str = ""
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
+    UVICORN_WORKERS: int = 4
 
     @model_validator(mode="after")
     def assemble_db_connection(self) -> "Settings":
