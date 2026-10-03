@@ -21,7 +21,7 @@ export const getAttentionQueue = async (
   params?: AttentionQueueParams
 ): Promise<SupervisoryAttentionQueueResponse> => {
   const response = await client.get<SupervisoryAttentionQueueResponse>(
-    '/supervisory/attention-queue',
+    '/api/v1/supervisory/attention-queue',
     { params }
   );
   return response.data;
@@ -32,7 +32,7 @@ export const getEntitySupervisoryOverview = async (
   params?: SupervisoryOverviewParams
 ): Promise<EntitySupervisoryOverviewResponse> => {
   const response = await client.get<EntitySupervisoryOverviewResponse>(
-    `/supervisory/cse/${cseId}/attention-overview`,
+    `/api/v1/supervisory/cse/${cseId}/attention-overview`,
     { params }
   );
   return response.data;

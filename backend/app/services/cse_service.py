@@ -37,9 +37,12 @@ class CSEService(BaseService[CSE]):
         limit: int = 100,
         search: Optional[str] = None,
         sector: Optional[str] = None,
-        is_active: Optional[bool] = None
+        is_active: Optional[bool] = None,
+        include_synthetic: bool = False
     ) -> List[CSE]:
         query = db.query(CSE)
+        if not include_synthetic:
+            query = query.filter(~CSE.cse_code.like("SYN-%")).filter(~CSE.sector.like("%SYNTHETIC%"))
         if search:
             pattern = f"%{search}%"
             query = query.filter((CSE.name.ilike(pattern)) | (CSE.cse_code.ilike(pattern)))
@@ -54,9 +57,12 @@ class CSEService(BaseService[CSE]):
         db: Session,
         search: Optional[str] = None,
         sector: Optional[str] = None,
-        is_active: Optional[bool] = None
+        is_active: Optional[bool] = None,
+        include_synthetic: bool = False
     ) -> int:
         query = db.query(CSE)
+        if not include_synthetic:
+            query = query.filter(~CSE.cse_code.like("SYN-%")).filter(~CSE.sector.like("%SYNTHETIC%"))
         if search:
             pattern = f"%{search}%"
             query = query.filter((CSE.name.ilike(pattern)) | (CSE.cse_code.ilike(pattern)))

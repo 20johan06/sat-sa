@@ -220,7 +220,7 @@ class SupervisoryService:
         Help examiners identify which CSEs require inspection based on deterministic indicators.
         Enforces server-side CSE isolation.
         """
-        query = db.query(CSE)
+        query = db.query(CSE).filter(~CSE.cse_code.like("SYN-%")).filter(~CSE.sector.like("%SYNTHETIC%"))
         if allowed_cse_ids is not None:
             query = query.filter(CSE.id.in_(allowed_cse_ids))
         if sector:

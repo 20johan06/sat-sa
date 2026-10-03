@@ -74,7 +74,7 @@ class SyntheticGeneratorService:
     @staticmethod
     def cleanup_synthetic_data(db: Session):
         """Cleans up synthetic validation entities by prefix without touching operational data."""
-        syn_cses = db.query(CSE).filter(CSE.cse_code.like("SYN-%")).all()
+        syn_cses = db.query(CSE).filter((CSE.cse_code.like("SYN-%")) | (CSE.sector.like("%SYNTHETIC%"))).all()
         syn_cse_ids = [c.id for c in syn_cses]
 
         if syn_cse_ids:

@@ -67,8 +67,13 @@ export const ValidationPage: React.FC = () => {
       </div>
 
       {isLoading || !valData ? (
-        <div className="text-slate-400 text-sm py-12 text-center bg-slate-900 rounded-xl border border-slate-800">
-          Loading synthetic validation engine metrics...
+        <div className="text-slate-300 text-sm py-16 text-center bg-slate-900 rounded-xl border border-slate-800 space-y-4 shadow-xl">
+          <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div>
+            <p className="font-bold text-base text-white font-mono">Running controlled synthetic validation...</p>
+            <p className="text-xs text-slate-400 mt-1">Evaluating canonical supervisory rules across synthetic scenarios...</p>
+            <p className="text-[11px] text-slate-500 font-mono mt-0.5">Results will appear when validation engine completes calculation.</p>
+          </div>
         </div>
       ) : (
         <>

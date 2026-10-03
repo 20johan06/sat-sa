@@ -30,9 +30,10 @@ def test_bm01_peer_benchmarking_and_baselines(test_cses, db_session):
     """BM-01 calculates sector baselines and detects deviation when CSE |Z| > 2.0."""
     now = datetime.datetime.now(datetime.timezone.utc)
 
-    # CSE 0 to CSE 8: High investigation rate (100% investigated)
-    for c in test_cses[:9]:
-        for i in range(12):
+    # CSE 0 to CSE 8: High investigation rate (peers with slight realistic variance)
+    for idx, c in enumerate(test_cses[:9]):
+        num_alerts = 12 if idx != 0 else 13
+        for i in range(num_alerts):
             alt_id = uuid.uuid4()
             alt = Alert(
                 id=alt_id,
@@ -47,17 +48,18 @@ def test_bm01_peer_benchmarking_and_baselines(test_cses, db_session):
             db_session.add(alt)
             db_session.flush()
 
-            cs = Case(
-                id=uuid.uuid4(),
-                cse_id=c.id,
-                alert_id=alt_id,
-                external_case_id=f"CASE-BM-{alt_id.hex[:4]}",
-                title="BM Case",
-                status="CLOSED",
-                opened_at=now,
-                closed_at=now
-            )
-            db_session.add(cs)
+            if i < 12:
+                cs = Case(
+                    id=uuid.uuid4(),
+                    cse_id=c.id,
+                    alert_id=alt_id,
+                    external_case_id=f"CASE-BM-{alt_id.hex[:4]}",
+                    title="BM Case",
+                    status="CLOSED",
+                    opened_at=now,
+                    closed_at=now
+                )
+                db_session.add(cs)
 
     # CSE 9: Target CSE with 0% investigation rate out of 15 alerts
     target_cse = test_cses[9]
@@ -102,8 +104,9 @@ def test_bm01_deduplication_behavior(test_cses, db_session):
     p2_end = datetime.datetime(2026, 9, 30, 23, 59, 59, tzinfo=datetime.timezone.utc)
 
     # Create alerts for Period 1
-    for c in test_cses[:9]:
-        for i in range(12):
+    for idx, c in enumerate(test_cses[:9]):
+        num_alerts = 12 if idx != 0 else 13
+        for i in range(num_alerts):
             alt_id = uuid.uuid4()
             alt = Alert(
                 id=alt_id,
@@ -118,17 +121,18 @@ def test_bm01_deduplication_behavior(test_cses, db_session):
             db_session.add(alt)
             db_session.flush()
 
-            cs = Case(
-                id=uuid.uuid4(),
-                cse_id=c.id,
-                alert_id=alt_id,
-                external_case_id=f"CASE-P1-{alt_id.hex[:4]}",
-                title="P1 Case",
-                status="CLOSED",
-                opened_at=p1_start,
-                closed_at=p1_start
-            )
-            db_session.add(cs)
+            if i < 12:
+                cs = Case(
+                    id=uuid.uuid4(),
+                    cse_id=c.id,
+                    alert_id=alt_id,
+                    external_case_id=f"CASE-P1-{alt_id.hex[:4]}",
+                    title="P1 Case",
+                    status="CLOSED",
+                    opened_at=p1_start,
+                    closed_at=p1_start
+                )
+                db_session.add(cs)
 
     target_cse = test_cses[9]
     for i in range(15):
@@ -176,8 +180,9 @@ def test_bm01_deduplication_behavior(test_cses, db_session):
         db_session.add(alt)
     
     # Also setup Period 2 alerts for peers
-    for c in test_cses[:9]:
-        for i in range(12):
+    for idx, c in enumerate(test_cses[:9]):
+        num_alerts = 12 if idx != 0 else 13
+        for i in range(num_alerts):
             alt_id = uuid.uuid4()
             alt = Alert(
                 id=alt_id,
@@ -192,17 +197,18 @@ def test_bm01_deduplication_behavior(test_cses, db_session):
             db_session.add(alt)
             db_session.flush()
 
-            cs = Case(
-                id=uuid.uuid4(),
-                cse_id=c.id,
-                alert_id=alt_id,
-                external_case_id=f"CASE-P2-{alt_id.hex[:4]}",
-                title="P2 Case",
-                status="CLOSED",
-                opened_at=p2_start,
-                closed_at=p2_start
-            )
-            db_session.add(cs)
+            if i < 12:
+                cs = Case(
+                    id=uuid.uuid4(),
+                    cse_id=c.id,
+                    alert_id=alt_id,
+                    external_case_id=f"CASE-P2-{alt_id.hex[:4]}",
+                    title="P2 Case",
+                    status="CLOSED",
+                    opened_at=p2_start,
+                    closed_at=p2_start
+                )
+                db_session.add(cs)
 
     db_session.commit()
 

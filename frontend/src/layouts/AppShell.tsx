@@ -10,7 +10,8 @@ import {
   ExternalLink,
   LogOut,
   UserCheck,
-  FileCheck2
+  FileCheck2,
+  LayoutDashboard
 } from 'lucide-react';
 import IconButton from '../components/ui/IconButton';
 import { useAuth } from '../context/AuthContext';
@@ -21,7 +22,8 @@ export const AppShell: React.FC = () => {
 
   // Primary top-level global navigation items
   const primaryNavItems = [
-    { label: 'CSE Directory', path: '/', icon: <Building2 className="w-4 h-4" /> },
+    { label: 'Supervisory Overview', path: '/', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { label: 'CSE Directory', path: '/cses', icon: <Building2 className="w-4 h-4" /> },
     { label: 'National Findings', path: '/findings', icon: <Search className="w-4 h-4" /> },
     { label: 'System Health', path: '/system/health', icon: <HeartPulse className="w-4 h-4" /> },
   ];

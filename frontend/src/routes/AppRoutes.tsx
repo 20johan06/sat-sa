@@ -5,6 +5,7 @@ import CSEContextLayout from '../layouts/CSEContextLayout';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 
 import { LoginPage } from '../pages/LoginPage';
+import SupervisoryOverviewPage from '../pages/SupervisoryOverviewPage';
 import CSERegistryPage from '../pages/CSERegistryPage';
 import CSEOverviewPage from '../pages/CSEOverviewPage';
 import AnalyticsConsolePage from '../pages/AnalyticsConsolePage';
@@ -37,7 +38,8 @@ export const AppRoutes: React.FC = () => {
         }
       >
         {/* National / Root Level Routes */}
-        <Route index element={<CSERegistryPage />} />
+        <Route index element={<SupervisoryOverviewPage />} />
+        <Route path="cses" element={<CSERegistryPage />} />
         <Route path="findings" element={<NationalFindingsPage />} />
         <Route path="findings/:finding_id" element={<FindingDetailPage />} />
         <Route path="system/health" element={<SystemHealthPage />} />

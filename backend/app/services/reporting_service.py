@@ -242,8 +242,10 @@ class ReportingService:
         query = db.query(Finding)
         if cse_id:
             query = query.filter(Finding.cse_id == cse_id)
-        elif allowed_cse_ids is not None:
-            query = query.filter(Finding.cse_id.in_(allowed_cse_ids))
+        else:
+            query = query.filter(~Finding.finding_code.like("SYN-%"))
+            if allowed_cse_ids is not None:
+                query = query.filter(Finding.cse_id.in_(allowed_cse_ids))
         if category:
             query = query.filter(Finding.category == category.upper())
         if severity:

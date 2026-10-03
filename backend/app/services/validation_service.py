@@ -4,7 +4,8 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
 from app.models.cse import CSE
-from app.models.finding import Finding
+from app.models.finding import Finding, FindingEvidence, FindingReviewHistory
+from app.models.analysis_run import AnalysisRun
 from app.services.analytics_runner import AnalyticsRunnerService
 from app.services.review_service import review_service
 from app.schemas.validation import (
@@ -33,6 +34,7 @@ class ValidationService:
     Authoritative Phase 13 Synthetic Validation Engine.
     Executes existing Phase 5 analytics against isolated synthetic datasets,
     evaluates findings against ground truth, and calculates TP/FP/FN/TN, Precision, Recall, F1, and Precision@K.
+    Restores pre-validation database state after metric computation to prevent permanent DB mutations.
     """
 
     @staticmethod
@@ -43,6 +45,11 @@ class ValidationService:
         # 1. Fetch synthetic CSEs
         syn_cses = db.query(CSE).filter(CSE.cse_code.like("SYN-CSE-%")).all()
         cse_map = {c.cse_code: c for c in syn_cses}
+        syn_cse_ids = [c.id for c in syn_cses]
+
+        # Snapshot existing finding and analysis run IDs before validation execution
+        existing_finding_ids = set(f.id for f in db.query(Finding.id).filter(Finding.cse_id.in_(syn_cse_ids)).all())
+        existing_analysis_run_ids = set(a.id for a in db.query(AnalysisRun.id).filter(AnalysisRun.cse_id.in_(syn_cse_ids)).all())
 
         scenario_results: List[ScenarioResultItem] = []
         rule_matrix: Dict[str, Dict[str, int]] = {
@@ -160,13 +167,35 @@ class ValidationService:
         relevant_matches = 0
         if top_k_items:
             for item in top_k_items:
-                # Find matching scenario spec
                 spec = GROUND_TRUTH_SPEC.get(item.cse_code)
                 if spec and spec["expected_presence"] == "EXPECTED_FINDING":
                     relevant_matches += 1
             precision_at_k = relevant_matches / len(top_k_items)
         else:
             precision_at_k = 1.0
+
+        # 5. Clean up transient validation findings & analysis runs created during this run to preserve database integrity
+        if syn_cse_ids:
+            new_findings = db.query(Finding).filter(
+                Finding.cse_id.in_(syn_cse_ids),
+                ~Finding.id.in_(existing_finding_ids)
+            ).all()
+            if new_findings:
+                new_f_ids = [f.id for f in new_findings]
+                db.query(FindingEvidence).filter(FindingEvidence.finding_id.in_(new_f_ids)).delete(synchronize_session=False)
+                db.query(FindingReviewHistory).filter(FindingReviewHistory.finding_id.in_(new_f_ids)).delete(synchronize_session=False)
+                db.query(Finding).filter(Finding.id.in_(new_f_ids)).delete(synchronize_session=False)
+            
+            new_analysis_runs = db.query(AnalysisRun).filter(
+                AnalysisRun.cse_id.in_(syn_cse_ids),
+                ~AnalysisRun.id.in_(existing_analysis_run_ids)
+            ).all()
+            if new_analysis_runs:
+                new_ar_ids = [a.id for a in new_analysis_runs]
+                db.query(AnalysisRun).filter(AnalysisRun.id.in_(new_ar_ids)).delete(synchronize_session=False)
+
+            if new_findings or new_analysis_runs:
+                db.commit()
 
         summary = (
             f"Phase 13 Validation Execution Complete. Evaluated {len(scenario_results)} synthetic scenarios across "
