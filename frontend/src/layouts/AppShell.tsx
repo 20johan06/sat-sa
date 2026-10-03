@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, Link } from 'react-router-dom';
 import {
   Shield,
   Building2,
@@ -7,7 +7,6 @@ import {
   HeartPulse,
   Menu,
   X,
-  ExternalLink,
   LogOut,
   UserCheck,
   FileCheck2,
@@ -96,13 +95,13 @@ export const AppShell: React.FC = () => {
               </a>
             )}
 
-            <a
-              href="/system/health"
+            <Link
+              to="/system/health"
               className="text-xs text-slate-300 hover:text-white flex items-center gap-1 font-mono transition-colors"
             >
               <span>Health Status</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
+              <HeartPulse className="w-3.5 h-3.5 text-emerald-400" />
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -188,9 +187,8 @@ export const AppShell: React.FC = () => {
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-4 px-6 text-center text-xs text-slate-500 font-mono">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="max-w-7xl mx-auto flex items-center justify-center">
           <span>SAT-SA — Supervisory Analytics Tool for SOC Assessment</span>
-          <span>SIH 2026 Problem Statement 26157 | Phase 2 RBAC & Auth</span>
         </div>
       </footer>
     </div>
