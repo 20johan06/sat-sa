@@ -24,7 +24,7 @@ services:
     container_name: sat-sa-backend
     restart: always
     environment:
-      DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+      DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER}:SATSA%402026%21@postgres:5432/${POSTGRES_DB}"
       SECRET_KEY: "${SECRET_KEY?Error: SECRET_KEY must be set in environment}"
       ENVIRONMENT: production
       DB_POOL_SIZE: "${DB_POOL_SIZE:-14}"
@@ -40,15 +40,16 @@ services:
       - sat-sa-internal
 
   frontend:
-    image: sat-sa-frontend:v1.0.0-c59d5fa
+    image: sat-sa-frontend:v1.0.0-offline
     container_name: sat-sa-frontend
     restart: always
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
       - backend
     networks:
       - sat-sa-internal
+      - sat-sa-public
 
 volumes:
   postgres_data:
@@ -60,3 +61,6 @@ networks:
   sat-sa-internal:
     driver: bridge
     internal: true
+
+  sat-sa-public:
+    driver: bridge
