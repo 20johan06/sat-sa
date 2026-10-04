@@ -16,7 +16,8 @@ from app.api.v1.endpoints import (
     manual_review,
     capability,
     trends,
-    validation
+    validation,
+    data_exchange
 )
 from app.api.v1 import ingestion
 
@@ -47,5 +48,7 @@ api_router.include_router(validation.router)
 api_router.include_router(assessments.router)
 api_router.include_router(dataset_versions.router)
 api_router.include_router(analysis_runs.router)
+api_router.include_router(data_exchange.router)
+
 
 

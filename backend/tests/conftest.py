@@ -3,11 +3,14 @@ import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-# 1. Force environment variables to test database before app imports
+import urllib.parse
+TEST_DB_USER = os.environ.get("POSTGRES_USER", "satsa_user")
+TEST_DB_PASS = os.environ.get("POSTGRES_PASSWORD", "SATSA@2026!")
+TEST_DB_PASS_ENC = urllib.parse.quote_plus(TEST_DB_PASS)
 TEST_DB_NAME = os.environ.get("POSTGRES_DB_TEST", "satsa_test_db")
 TEST_DB_URL = os.environ.get(
     "DATABASE_URL_TEST",
-    f"postgresql+psycopg://satsa_user:satsa_password@localhost:5432/{TEST_DB_NAME}"
+    f"postgresql+psycopg://{TEST_DB_USER}:{TEST_DB_PASS_ENC}@127.0.0.1:5432/{TEST_DB_NAME}"
 )
 
 os.environ["POSTGRES_DB"] = TEST_DB_NAME

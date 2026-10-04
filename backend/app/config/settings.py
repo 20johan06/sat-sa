@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "satsa_user"
     POSTGRES_PASSWORD: str = "satsa_password"
     POSTGRES_DB: str = "satsa_db"
-    POSTGRES_HOST: str = "localhost"
+    POSTGRES_HOST: str = "127.0.0.1"
     POSTGRES_PORT: int = 5432
     DATABASE_URL: str = ""
     DB_POOL_SIZE: int = 5
