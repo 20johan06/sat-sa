@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import { normalizeApiError } from './errors';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? 'http://localhost:8000' : '');
 export const TOKEN_STORAGE_KEY = 'sat_sa_auth_token';
 
 export const apiClient: AxiosInstance = axios.create({
