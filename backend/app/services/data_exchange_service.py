@@ -235,63 +235,76 @@ class DataExchangeService:
                 "id": str(a.id),
                 "cse_id": str(a.cse_id),
                 "batch_id": str(a.batch_id) if a.batch_id else None,
-                "alert_reference": a.alert_reference,
-                "source_system": a.source_system,
-                "rule_name": a.rule_name,
+                "asset_id": str(a.asset_id) if a.asset_id else None,
+                "external_alert_id": a.external_alert_id,
+                "title": a.title,
+                "category": a.category,
                 "severity": a.severity,
                 "status": a.status,
-                "event_timestamp": _iso_datetime(a.event_timestamp),
-                "ingested_at": _iso_datetime(a.ingested_at),
-                "raw_data_json": a.raw_data_json,
+                "disposition": a.disposition,
+                "target_asset_name": a.target_asset_name,
+                "detected_at": _iso_datetime(a.detected_at),
+                "closed_at": _iso_datetime(a.closed_at),
+                "raw_metadata": a.raw_metadata,
+                "created_at": _iso_datetime(a.created_at),
             } for a in alerts],
             "cases": [{
                 "id": str(c.id),
                 "cse_id": str(c.cse_id),
                 "batch_id": str(c.batch_id) if c.batch_id else None,
-                "case_reference": c.case_reference,
+                "alert_id": str(c.alert_id) if c.alert_id else None,
+                "external_case_id": c.external_case_id,
                 "title": c.title,
-                "severity": c.severity,
                 "status": c.status,
-                "assigned_team": c.assigned_team,
+                "priority": c.priority,
+                "summary": c.summary,
                 "opened_at": _iso_datetime(c.opened_at),
                 "closed_at": _iso_datetime(c.closed_at),
-                "details_json": c.details_json,
+                "created_at": _iso_datetime(c.created_at),
             } for c in cases],
             "investigations": [{
                 "id": str(inv.id),
                 "case_id": str(inv.case_id),
-                "investigation_reference": inv.investigation_reference,
-                "lead_analyst": inv.lead_analyst,
-                "status": inv.status,
-                "summary": inv.summary,
+                "external_investigation_id": inv.external_investigation_id,
+                "investigator_ref": inv.investigator_ref,
+                "action_type": inv.action_type,
+                "notes": inv.notes,
                 "started_at": _iso_datetime(inv.started_at),
                 "completed_at": _iso_datetime(inv.completed_at),
+                "evidence_count": inv.evidence_count,
+                "created_at": _iso_datetime(inv.created_at),
             } for inv in investigations],
             "escalations": [{
                 "id": str(esc.id),
                 "case_id": str(esc.case_id),
-                "escalation_reference": esc.escalation_reference,
-                "escalated_to": esc.escalated_to,
+                "alert_id": str(esc.alert_id) if esc.alert_id else None,
+                "escalation_level": esc.escalation_level,
                 "reason": esc.reason,
+                "status": esc.status,
                 "escalated_at": _iso_datetime(esc.escalated_at),
+                "created_at": _iso_datetime(esc.created_at),
             } for esc in escalations],
             "monitoring_coverages": [{
                 "id": str(mc.id),
                 "cse_id": str(mc.cse_id),
-                "log_source_type": mc.log_source_type,
-                "coverage_status": mc.coverage_status,
-                "expected_eps": mc.expected_eps,
-                "last_seen_at": _iso_datetime(mc.last_seen_at),
+                "log_source_category": mc.log_source_category,
+                "is_expected": mc.is_expected,
+                "is_active": mc.is_active,
+                "last_received_at": _iso_datetime(mc.last_received_at),
+                "coverage_percentage": mc.coverage_percentage,
+                "period_start": _iso_datetime(mc.period_start),
+                "period_end": _iso_datetime(mc.period_end),
+                "created_at": _iso_datetime(mc.created_at),
             } for mc in coverages],
             "assets": [{
                 "id": str(ast.id),
                 "cse_id": str(ast.cse_id),
                 "asset_identifier": ast.asset_identifier,
-                "asset_name": ast.asset_name,
+                "name": ast.name,
                 "asset_type": ast.asset_type,
                 "ip_address": ast.ip_address,
+                "hostname": ast.hostname,
                 "criticality": ast.criticality,
-                "is_monitored": ast.is_monitored,
                 "created_at": _iso_datetime(ast.created_at),
             } for ast in assets]
         }
@@ -600,11 +613,11 @@ class DataExchangeService:
                             id=ast_id,
                             cse_id=uuid.UUID(ast_data["cse_id"]),
                             asset_identifier=ast_data["asset_identifier"],
-                            asset_name=ast_data["asset_name"],
-                            asset_type=ast_data["asset_type"],
+                            name=ast_data["name"],
+                            asset_type=ast_data.get("asset_type", "SERVER"),
                             ip_address=ast_data.get("ip_address"),
-                            criticality=ast_data.get("criticality", "TIER_1"),
-                            is_monitored=ast_data.get("is_monitored", True),
+                            hostname=ast_data.get("hostname"),
+                            criticality=ast_data.get("criticality", "MEDIUM"),
                             created_at=_parse_datetime(ast_data.get("created_at")) or now_utc
                         ))
                         imported_counts["assets"] = imported_counts.get("assets", 0) + 1
@@ -617,14 +630,18 @@ class DataExchangeService:
                             id=a_id,
                             cse_id=uuid.UUID(a_data["cse_id"]),
                             batch_id=uuid.UUID(a_data["batch_id"]) if a_data.get("batch_id") else None,
-                            alert_reference=a_data["alert_reference"],
-                            source_system=a_data["source_system"],
-                            rule_name=a_data["rule_name"],
+                            asset_id=uuid.UUID(a_data["asset_id"]) if a_data.get("asset_id") else None,
+                            external_alert_id=a_data["external_alert_id"],
+                            title=a_data["title"],
+                            category=a_data["category"],
                             severity=a_data["severity"],
-                            status=a_data.get("status", "NEW"),
-                            event_timestamp=_parse_datetime(a_data.get("event_timestamp")) or now_utc,
-                            ingested_at=_parse_datetime(a_data.get("ingested_at")) or now_utc,
-                            raw_data_json=a_data.get("raw_data_json")
+                            status=a_data["status"],
+                            disposition=a_data.get("disposition"),
+                            target_asset_name=a_data.get("target_asset_name"),
+                            detected_at=_parse_datetime(a_data.get("detected_at")) or now_utc,
+                            closed_at=_parse_datetime(a_data.get("closed_at")),
+                            raw_metadata=a_data.get("raw_metadata"),
+                            created_at=_parse_datetime(a_data.get("created_at")) or now_utc
                         ))
                         imported_counts["alerts"] = imported_counts.get("alerts", 0) + 1
 
@@ -635,14 +652,15 @@ class DataExchangeService:
                             id=c_id,
                             cse_id=uuid.UUID(c_data["cse_id"]),
                             batch_id=uuid.UUID(c_data["batch_id"]) if c_data.get("batch_id") else None,
-                            case_reference=c_data["case_reference"],
+                            alert_id=uuid.UUID(c_data["alert_id"]) if c_data.get("alert_id") else None,
+                            external_case_id=c_data["external_case_id"],
                             title=c_data["title"],
-                            severity=c_data["severity"],
-                            status=c_data.get("status", "OPEN"),
-                            assigned_team=c_data.get("assigned_team"),
+                            status=c_data["status"],
+                            priority=c_data.get("priority", "MEDIUM"),
+                            summary=c_data.get("summary"),
                             opened_at=_parse_datetime(c_data.get("opened_at")) or now_utc,
                             closed_at=_parse_datetime(c_data.get("closed_at")),
-                            details_json=c_data.get("details_json")
+                            created_at=_parse_datetime(c_data.get("created_at")) or now_utc
                         ))
                         imported_counts["cases"] = imported_counts.get("cases", 0) + 1
 
@@ -652,12 +670,14 @@ class DataExchangeService:
                         db.add(Investigation(
                             id=inv_id,
                             case_id=uuid.UUID(inv_data["case_id"]),
-                            investigation_reference=inv_data["investigation_reference"],
-                            lead_analyst=inv_data.get("lead_analyst"),
-                            status=inv_data.get("status", "ACTIVE"),
-                            summary=inv_data.get("summary"),
+                            external_investigation_id=inv_data.get("external_investigation_id"),
+                            investigator_ref=inv_data.get("investigator_ref"),
+                            action_type=inv_data["action_type"],
+                            notes=inv_data.get("notes"),
                             started_at=_parse_datetime(inv_data.get("started_at")) or now_utc,
-                            completed_at=_parse_datetime(inv_data.get("completed_at"))
+                            completed_at=_parse_datetime(inv_data.get("completed_at")),
+                            evidence_count=inv_data.get("evidence_count", 0),
+                            created_at=_parse_datetime(inv_data.get("created_at")) or now_utc
                         ))
                         imported_counts["investigations"] = imported_counts.get("investigations", 0) + 1
 
@@ -667,10 +687,12 @@ class DataExchangeService:
                         db.add(Escalation(
                             id=esc_id,
                             case_id=uuid.UUID(esc_data["case_id"]),
-                            escalation_reference=esc_data["escalation_reference"],
-                            escalated_to=esc_data["escalated_to"],
-                            reason=esc_data["reason"],
-                            escalated_at=_parse_datetime(esc_data.get("escalated_at")) or now_utc
+                            alert_id=uuid.UUID(esc_data["alert_id"]) if esc_data.get("alert_id") else None,
+                            escalation_level=esc_data["escalation_level"],
+                            reason=esc_data.get("reason"),
+                            status=esc_data.get("status", "PENDING"),
+                            escalated_at=_parse_datetime(esc_data.get("escalated_at")) or now_utc,
+                            created_at=_parse_datetime(esc_data.get("created_at")) or now_utc
                         ))
                         imported_counts["escalations"] = imported_counts.get("escalations", 0) + 1
 
@@ -680,10 +702,14 @@ class DataExchangeService:
                         db.add(MonitoringCoverage(
                             id=mc_id,
                             cse_id=uuid.UUID(mc_data["cse_id"]),
-                            log_source_type=mc_data["log_source_type"],
-                            coverage_status=mc_data["coverage_status"],
-                            expected_eps=mc_data.get("expected_eps"),
-                            last_seen_at=_parse_datetime(mc_data.get("last_seen_at"))
+                            log_source_category=mc_data["log_source_category"],
+                            is_expected=mc_data.get("is_expected", True),
+                            is_active=mc_data.get("is_active", True),
+                            last_received_at=_parse_datetime(mc_data.get("last_received_at")),
+                            coverage_percentage=mc_data.get("coverage_percentage"),
+                            period_start=_parse_datetime(mc_data.get("period_start")),
+                            period_end=_parse_datetime(mc_data.get("period_end")),
+                            created_at=_parse_datetime(mc_data.get("created_at")) or now_utc
                         ))
                         imported_counts["monitoring_coverages"] = imported_counts.get("monitoring_coverages", 0) + 1
 

@@ -4,27 +4,29 @@ class CaseEntity extends Equatable {
   final String id;
   final String cseId;
   final String? batchId;
-  final String caseReference;
+  final String? alertId;
+  final String externalCaseId;
   final String title;
-  final String severity;
   final String status;
-  final String? assignedTeam;
+  final String priority;
+  final String? summary;
   final DateTime openedAt;
   final DateTime? closedAt;
-  final Map<String, dynamic>? detailsJson;
+  final DateTime createdAt;
 
   const CaseEntity({
     required this.id,
     required this.cseId,
     this.batchId,
-    required this.caseReference,
+    this.alertId,
+    required this.externalCaseId,
     required this.title,
-    required this.severity,
     required this.status,
-    this.assignedTeam,
+    required this.priority,
+    this.summary,
     required this.openedAt,
     this.closedAt,
-    this.detailsJson,
+    required this.createdAt,
   });
 
   factory CaseEntity.fromJson(Map<String, dynamic> json) {
@@ -32,14 +34,15 @@ class CaseEntity extends Equatable {
       id: json['id'] as String,
       cseId: json['cse_id'] as String,
       batchId: json['batch_id'] as String?,
-      caseReference: json['case_reference'] as String,
+      alertId: json['alert_id'] as String?,
+      externalCaseId: json['external_case_id'] as String,
       title: json['title'] as String,
-      severity: json['severity'] as String,
       status: json['status'] as String? ?? 'OPEN',
-      assignedTeam: json['assigned_team'] as String?,
+      priority: json['priority'] as String? ?? 'MEDIUM',
+      summary: json['summary'] as String?,
       openedAt: DateTime.parse(json['opened_at'] as String).toUtc(),
       closedAt: json['closed_at'] != null ? DateTime.parse(json['closed_at'] as String).toUtc() : null,
-      detailsJson: json['details_json'] as Map<String, dynamic>?,
+      createdAt: DateTime.parse(json['created_at'] as String).toUtc(),
     );
   }
 
@@ -47,16 +50,18 @@ class CaseEntity extends Equatable {
         'id': id,
         'cse_id': cseId,
         'batch_id': batchId,
-        'case_reference': caseReference,
+        'alert_id': alertId,
+        'external_case_id': externalCaseId,
         'title': title,
-        'severity': severity,
         'status': status,
-        'assigned_team': assignedTeam,
+        'priority': priority,
+        'summary': summary,
         'opened_at': openedAt.toIso8601String(),
         'closed_at': closedAt?.toIso8601String(),
-        'details_json': detailsJson,
+        'created_at': createdAt.toIso8601String(),
       };
 
   @override
-  List<Object?> get props => [id, cseId, caseReference, title, severity, status, openedAt, closedAt];
+  List<Object?> get props => [id, cseId, externalCaseId, title, status, priority, openedAt, closedAt];
 }
+

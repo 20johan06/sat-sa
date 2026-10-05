@@ -1,5 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:satsa_mobile/domain/entities/cse.dart';
+import 'package:satsa_mobile/domain/entities/alert_entity.dart';
+import 'package:satsa_mobile/domain/entities/case_entity.dart';
+import 'package:satsa_mobile/domain/entities/investigation_entity.dart';
+import 'package:satsa_mobile/domain/entities/escalation_entity.dart';
+import 'package:satsa_mobile/domain/entities/monitoring_coverage_entity.dart';
+import 'package:satsa_mobile/domain/entities/asset_entity.dart';
 import 'package:satsa_mobile/domain/entities/package_manifest_entity.dart';
 
 void main() {
@@ -24,6 +30,120 @@ void main() {
       expect(restored.id, cse.id);
       expect(restored.cseCode, cse.cseCode);
       expect(restored.sector, cse.sector);
+    });
+
+    test('AlertEntity JSON parity with Windows Alert model', () {
+      final now = DateTime.now().toUtc();
+      final alert = AlertEntity(
+        id: 'alt-1',
+        cseId: 'cse-1',
+        externalAlertId: 'ALT-100',
+        title: 'High CPU',
+        category: 'PERFORMANCE',
+        severity: 'HIGH',
+        status: 'NEW',
+        detectedAt: now,
+        createdAt: now,
+      );
+
+      final jsonMap = alert.toJson();
+      final restored = AlertEntity.fromJson(jsonMap);
+
+      expect(restored.externalAlertId, 'ALT-100');
+      expect(restored.title, 'High CPU');
+      expect(restored.severity, 'HIGH');
+    });
+
+    test('CaseEntity JSON parity with Windows Case model', () {
+      final now = DateTime.now().toUtc();
+      final caseObj = CaseEntity(
+        id: 'cas-1',
+        cseId: 'cse-1',
+        externalCaseId: 'CAS-500',
+        title: 'Node Outage',
+        status: 'OPEN',
+        priority: 'HIGH',
+        openedAt: now,
+        createdAt: now,
+      );
+
+      final jsonMap = caseObj.toJson();
+      final restored = CaseEntity.fromJson(jsonMap);
+
+      expect(restored.externalCaseId, 'CAS-500');
+      expect(restored.priority, 'HIGH');
+    });
+
+    test('InvestigationEntity JSON parity with Windows Investigation model', () {
+      final now = DateTime.now().toUtc();
+      final inv = InvestigationEntity(
+        id: 'inv-1',
+        caseId: 'cas-1',
+        actionType: 'AUDIT',
+        startedAt: now,
+        evidenceCount: 2,
+        createdAt: now,
+      );
+
+      final jsonMap = inv.toJson();
+      final restored = InvestigationEntity.fromJson(jsonMap);
+
+      expect(restored.actionType, 'AUDIT');
+      expect(restored.evidenceCount, 2);
+    });
+
+    test('EscalationEntity JSON parity with Windows Escalation model', () {
+      final now = DateTime.now().toUtc();
+      final esc = EscalationEntity(
+        id: 'esc-1',
+        caseId: 'cas-1',
+        escalationLevel: 'LEVEL_2',
+        status: 'PENDING',
+        escalatedAt: now,
+        createdAt: now,
+      );
+
+      final jsonMap = esc.toJson();
+      final restored = EscalationEntity.fromJson(jsonMap);
+
+      expect(restored.escalationLevel, 'LEVEL_2');
+    });
+
+    test('MonitoringCoverageEntity JSON parity with Windows MonitoringCoverage model', () {
+      final now = DateTime.now().toUtc();
+      final mc = MonitoringCoverageEntity(
+        id: 'mc-1',
+        cseId: 'cse-1',
+        logSourceCategory: 'SIEM',
+        isExpected: true,
+        isActive: true,
+        createdAt: now,
+      );
+
+      final jsonMap = mc.toJson();
+      final restored = MonitoringCoverageEntity.fromJson(jsonMap);
+
+      expect(restored.logSourceCategory, 'SIEM');
+      expect(restored.isExpected, true);
+    });
+
+    test('AssetEntity JSON parity with Windows Asset model', () {
+      final now = DateTime.now().toUtc();
+      final asset = AssetEntity(
+        id: 'ast-1',
+        cseId: 'cse-1',
+        assetIdentifier: 'PAY-01',
+        name: 'Payment Server',
+        assetType: 'SERVER',
+        criticality: 'HIGH',
+        createdAt: now,
+      );
+
+      final jsonMap = asset.toJson();
+      final restored = AssetEntity.fromJson(jsonMap);
+
+      expect(restored.assetIdentifier, 'PAY-01');
+      expect(restored.name, 'Payment Server');
     });
 
     test('PackageManifestEntity JSON parity with Phase 18 backend schema', () {
@@ -58,3 +178,4 @@ void main() {
     });
   });
 }
+

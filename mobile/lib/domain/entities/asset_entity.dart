@@ -4,22 +4,22 @@ class AssetEntity extends Equatable {
   final String id;
   final String cseId;
   final String assetIdentifier;
-  final String assetName;
+  final String name;
   final String assetType;
   final String? ipAddress;
+  final String? hostname;
   final String criticality;
-  final bool isMonitored;
   final DateTime createdAt;
 
   const AssetEntity({
     required this.id,
     required this.cseId,
     required this.assetIdentifier,
-    required this.assetName,
+    required this.name,
     required this.assetType,
     this.ipAddress,
+    this.hostname,
     required this.criticality,
-    required this.isMonitored,
     required this.createdAt,
   });
 
@@ -28,11 +28,11 @@ class AssetEntity extends Equatable {
       id: json['id'] as String,
       cseId: json['cse_id'] as String,
       assetIdentifier: json['asset_identifier'] as String,
-      assetName: json['asset_name'] as String,
-      assetType: json['asset_type'] as String,
+      name: json['name'] as String,
+      assetType: json['asset_type'] as String? ?? 'SERVER',
       ipAddress: json['ip_address'] as String?,
-      criticality: json['criticality'] as String? ?? 'TIER_1',
-      isMonitored: json['is_monitored'] as bool? ?? true,
+      hostname: json['hostname'] as String?,
+      criticality: json['criticality'] as String? ?? 'MEDIUM',
       createdAt: DateTime.parse(json['created_at'] as String).toUtc(),
     );
   }
@@ -41,14 +41,15 @@ class AssetEntity extends Equatable {
         'id': id,
         'cse_id': cseId,
         'asset_identifier': assetIdentifier,
-        'asset_name': assetName,
+        'name': name,
         'asset_type': assetType,
         'ip_address': ipAddress,
+        'hostname': hostname,
         'criticality': criticality,
-        'is_monitored': isMonitored,
         'created_at': createdAt.toIso8601String(),
       };
 
   @override
-  List<Object?> get props => [id, cseId, assetIdentifier, assetName, assetType, criticality, isMonitored];
+  List<Object?> get props => [id, cseId, assetIdentifier, name, assetType, ipAddress, hostname, criticality];
 }
+

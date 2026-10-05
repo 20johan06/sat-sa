@@ -17,6 +17,12 @@ from app.models.dataset_version import DatasetVersion
 from app.models.analysis_run import AnalysisRun
 from app.models.finding import Finding, FindingEvidence, FindingReviewHistory
 from app.models.report import ReportRecord
+from app.models.alert import Alert
+from app.models.case import Case
+from app.models.investigation import Investigation
+from app.models.escalation import Escalation
+from app.models.coverage import MonitoringCoverage
+from app.models.asset import Asset
 from app.models.user import User, UserCSE
 from app.services.data_exchange_service import DataExchangeService
 from app.utils.security import create_access_token, get_password_hash
@@ -116,10 +122,88 @@ def test_setup_data(db_session):
     )
     db_session.add(finding)
 
+    asset = Asset(
+        id=uuid.uuid4(),
+        cse_id=cse.id,
+        asset_identifier="PAY-SRV-01",
+        name="Core Payment Server 01",
+        asset_type="SERVER",
+        ip_address="10.0.1.50",
+        hostname="pay-srv-01.bank.local",
+        criticality="HIGH"
+    )
+    db_session.add(asset)
+
+    alert = Alert(
+        id=uuid.uuid4(),
+        cse_id=cse.id,
+        asset_id=asset.id,
+        external_alert_id="ALT-10092",
+        title="Payment Endpoint Silence",
+        category="INGESTION_FAILURE",
+        severity="HIGH",
+        status="NEW",
+        target_asset_name="Core Payment Server 01",
+        detected_at=now - timedelta(days=10)
+    )
+    db_session.add(alert)
+
+    case = Case(
+        id=uuid.uuid4(),
+        cse_id=cse.id,
+        alert_id=alert.id,
+        external_case_id="CAS-5021",
+        title="Unmonitored Payment Node Incident",
+        status="OPEN",
+        priority="HIGH",
+        summary="SOC investigation into unmonitored core node",
+        opened_at=now - timedelta(days=9)
+    )
+    db_session.add(case)
+
+    investigation = Investigation(
+        id=uuid.uuid4(),
+        case_id=case.id,
+        external_investigation_id="INV-901",
+        investigator_ref="SOC-ANALYST-42",
+        action_type="LOG_PIPELINE_AUDIT",
+        notes="Inspected syslog forwarder configuration on pay-srv-01",
+        started_at=now - timedelta(days=8),
+        evidence_count=3
+    )
+    db_session.add(investigation)
+
+    escalation = Escalation(
+        id=uuid.uuid4(),
+        case_id=case.id,
+        alert_id=alert.id,
+        escalation_level="LEVEL_2_SOC",
+        reason="No EPS received for 48 consecutive hours",
+        status="PENDING",
+        escalated_at=now - timedelta(days=7)
+    )
+    db_session.add(escalation)
+
+    coverage = MonitoringCoverage(
+        id=uuid.uuid4(),
+        cse_id=cse.id,
+        log_source_category="PAYMENT_GATEWAY_LOGS",
+        is_expected=True,
+        is_active=False,
+        last_received_at=now - timedelta(days=10),
+        coverage_percentage=0.0
+    )
+    db_session.add(coverage)
+
     fe = FindingEvidence(
         id=uuid.uuid4(),
         finding_id=finding.id,
         evidence_type="LOG_METRIC",
+        alert_id=alert.id,
+        case_id=case.id,
+        investigation_id=investigation.id,
+        escalation_id=escalation.id,
+        coverage_id=coverage.id,
         notes="Zero logs registered during 30-day window"
     )
     db_session.add(fe)
@@ -160,7 +244,13 @@ def test_setup_data(db_session):
         "finding": finding,
         "evidence": fe,
         "review": fr,
-        "report": report
+        "report": report,
+        "asset": asset,
+        "alert": alert,
+        "case": case,
+        "investigation": investigation,
+        "escalation": escalation,
+        "coverage": coverage
     }
 
 @pytest.fixture
@@ -333,6 +423,12 @@ class TestPhase18SecurityCorrection:
         # Delete local records to simulate import to Database B
         db_session.delete(test_setup_data["review"])
         db_session.delete(test_setup_data["evidence"])
+        db_session.delete(test_setup_data["investigation"])
+        db_session.delete(test_setup_data["escalation"])
+        db_session.delete(test_setup_data["case"])
+        db_session.delete(test_setup_data["alert"])
+        db_session.delete(test_setup_data["coverage"])
+        db_session.delete(test_setup_data["asset"])
         db_session.delete(test_setup_data["finding"])
         db_session.delete(test_setup_data["analysis_run"])
         db_session.delete(test_setup_data["dataset_version"])
@@ -356,6 +452,13 @@ class TestPhase18SecurityCorrection:
         assert len(imp_finding.review_history) == 1
         assert imp_finding.review_history[0].note_text == "Examiner flagged for tier-2 SOC escalation"
 
+        ev = imp_finding.evidence_links[0]
+        assert ev.alert_id == test_setup_data["alert"].id
+        assert ev.case_id == test_setup_data["case"].id
+        assert ev.investigation_id == test_setup_data["investigation"].id
+        assert ev.escalation_id == test_setup_data["escalation"].id
+        assert ev.coverage_id == test_setup_data["coverage"].id
+
     def test_I_transaction_rollback_works(self, db_session, test_setup_data):
         """Requirement I: Transaction rollback still works on import failure."""
         ass = test_setup_data["assessment"]
@@ -368,7 +471,6 @@ class TestPhase18SecurityCorrection:
         json_bytes = json.dumps(data_dict).encode("utf-8")
         salt_bytes = secrets.token_bytes(16)
         nonce_bytes = secrets.token_bytes(12)
-        aes_key = DataExchangeService._derive_aes256_key if hasattr(DataExchangeService, "_derive_aes256_key") else None
 
         from app.services.data_exchange_service import _derive_aes256_key, _construct_aad
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -391,6 +493,12 @@ class TestPhase18SecurityCorrection:
         # Delete local records to attempt import
         db_session.delete(test_setup_data["review"])
         db_session.delete(test_setup_data["evidence"])
+        db_session.delete(test_setup_data["investigation"])
+        db_session.delete(test_setup_data["escalation"])
+        db_session.delete(test_setup_data["case"])
+        db_session.delete(test_setup_data["alert"])
+        db_session.delete(test_setup_data["coverage"])
+        db_session.delete(test_setup_data["asset"])
         db_session.delete(test_setup_data["finding"])
         db_session.delete(test_setup_data["analysis_run"])
         db_session.delete(test_setup_data["dataset_version"])

@@ -4,27 +4,35 @@ class AlertEntity extends Equatable {
   final String id;
   final String cseId;
   final String? batchId;
-  final String alertReference;
-  final String sourceSystem;
-  final String ruleName;
+  final String? assetId;
+  final String externalAlertId;
+  final String title;
+  final String category;
   final String severity;
   final String status;
-  final DateTime eventTimestamp;
-  final DateTime ingestedAt;
-  final Map<String, dynamic>? rawDataJson;
+  final String? disposition;
+  final String? targetAssetName;
+  final DateTime detectedAt;
+  final DateTime? closedAt;
+  final Map<String, dynamic>? rawMetadata;
+  final DateTime createdAt;
 
   const AlertEntity({
     required this.id,
     required this.cseId,
     this.batchId,
-    required this.alertReference,
-    required this.sourceSystem,
-    required this.ruleName,
+    this.assetId,
+    required this.externalAlertId,
+    required this.title,
+    required this.category,
     required this.severity,
     required this.status,
-    required this.eventTimestamp,
-    required this.ingestedAt,
-    this.rawDataJson,
+    this.disposition,
+    this.targetAssetName,
+    required this.detectedAt,
+    this.closedAt,
+    this.rawMetadata,
+    required this.createdAt,
   });
 
   factory AlertEntity.fromJson(Map<String, dynamic> json) {
@@ -32,14 +40,18 @@ class AlertEntity extends Equatable {
       id: json['id'] as String,
       cseId: json['cse_id'] as String,
       batchId: json['batch_id'] as String?,
-      alertReference: json['alert_reference'] as String,
-      sourceSystem: json['source_system'] as String,
-      ruleName: json['rule_name'] as String,
+      assetId: json['asset_id'] as String?,
+      externalAlertId: json['external_alert_id'] as String,
+      title: json['title'] as String,
+      category: json['category'] as String,
       severity: json['severity'] as String,
       status: json['status'] as String? ?? 'NEW',
-      eventTimestamp: DateTime.parse(json['event_timestamp'] as String).toUtc(),
-      ingestedAt: DateTime.parse(json['ingested_at'] as String).toUtc(),
-      rawDataJson: json['raw_data_json'] as Map<String, dynamic>?,
+      disposition: json['disposition'] as String?,
+      targetAssetName: json['target_asset_name'] as String?,
+      detectedAt: DateTime.parse(json['detected_at'] as String).toUtc(),
+      closedAt: json['closed_at'] != null ? DateTime.parse(json['closed_at'] as String).toUtc() : null,
+      rawMetadata: json['raw_metadata'] as Map<String, dynamic>?,
+      createdAt: DateTime.parse(json['created_at'] as String).toUtc(),
     );
   }
 
@@ -47,16 +59,21 @@ class AlertEntity extends Equatable {
         'id': id,
         'cse_id': cseId,
         'batch_id': batchId,
-        'alert_reference': alertReference,
-        'source_system': sourceSystem,
-        'rule_name': ruleName,
+        'asset_id': assetId,
+        'external_alert_id': externalAlertId,
+        'title': title,
+        'category': category,
         'severity': severity,
         'status': status,
-        'event_timestamp': eventTimestamp.toIso8601String(),
-        'ingested_at': ingestedAt.toIso8601String(),
-        'raw_data_json': rawDataJson,
+        'disposition': disposition,
+        'target_asset_name': targetAssetName,
+        'detected_at': detectedAt.toIso8601String(),
+        'closed_at': closedAt?.toIso8601String(),
+        'raw_metadata': rawMetadata,
+        'created_at': createdAt.toIso8601String(),
       };
 
   @override
-  List<Object?> get props => [id, cseId, alertReference, sourceSystem, ruleName, severity, eventTimestamp];
+  List<Object?> get props => [id, cseId, externalAlertId, title, category, severity, status, detectedAt];
 }
+
