@@ -473,4 +473,40 @@ class LocalSupervisoryRepository {
     final records = await query.get();
     return records.map((r) => r.toEntity()).toList();
   }
+
+  // Bulk queries for peer benchmarking & analytics
+  Future<List<AlertEntity>> getAllAlerts() async {
+    final records = await db.select(db.alerts).get();
+    return records.map((r) => r.toEntity()).toList();
+  }
+
+  Future<List<CaseEntity>> getAllCases() async {
+    final records = await db.select(db.cases).get();
+    return records.map((r) => r.toEntity()).toList();
+  }
+
+  Future<List<InvestigationEntity>> getAllInvestigations() async {
+    final records = await db.select(db.investigations).get();
+    return records.map((r) => r.toEntity()).toList();
+  }
+
+  Future<List<EscalationEntity>> getAllEscalations() async {
+    final records = await db.select(db.escalations).get();
+    return records.map((r) => r.toEntity()).toList();
+  }
+
+  Future<List<MonitoringCoverageEntity>> getAllCoverages() async {
+    final records = await db.select(db.monitoringCoverages).get();
+    return records.map((r) => r.toEntity()).toList();
+  }
+
+  Future<List<FindingEntity>> getAllFindings() async {
+    final records = await db.select(db.findings).get();
+    return records.map((r) => r.toEntity()).toList();
+  }
+
+  Future<List<FindingEvidenceEntity>> getAllFindingEvidences() async {
+    final records = await db.select(db.findingEvidences).get();
+    return records.map((r) => r.toEntity()).toList();
+  }
 }
