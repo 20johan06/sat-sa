@@ -1,0 +1,40 @@
+name: satsa_mobile
+description: "SAT-SA — Supervisory Analytics Tool for SOC Assessment (Android Mobile Companion)"
+publish_to: 'none'
+version: 2.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Core Offline Database (Relational SQLite ORM)
+  drift: ^2.14.0
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
+  path: ^1.8.3
+
+  # Cryptography & Security (AES-256-GCM AEAD, Secure Storage, SHA256)
+  cryptography: ^2.7.0
+  flutter_secure_storage: ^9.0.0
+  crypto: ^3.0.3
+
+  # Archive & Compression (.satsa package format)
+  archive: ^3.3.7
+
+  # Serialization & State Management
+  meta: ^1.9.1
+  equatable: ^2.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  drift_dev: ^2.14.0
+  build_runner: ^2.4.7
+
+flutter:
+  uses-material-design: true

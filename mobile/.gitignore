@@ -1,0 +1,10 @@
+cat > mobile/.gitignore <<'EOF'
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+build/
+android/.gradle/
+android/local.properties
+ios/Pods/
+EOF
